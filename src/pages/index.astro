@@ -1,0 +1,194 @@
+---
+import Base from '../layouts/Base.astro';
+import NetDiagram from '../components/NetDiagram.astro';
+import Proof from '../components/Proof.astro';
+import SecHead from '../components/SecHead.astro';
+import BenchTable from '../components/BenchTable.astro';
+import Icon from '../components/Icon.astro';
+import Tag from '../components/Tag.astro';
+import { applications, roadmap } from '../data/facts';
+import { SITE } from '../config';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+---
+<Base>
+  <div class="wrap">
+    <div class="docline"><span>NS6X4-Q24 · open-source neural-network hardware · Apache-2.0</span><span>FPGA reference: working <Tag b="M" /> · silicon: target <Tag b="T" /></span></div>
+
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-text">
+        <h1 id="hero-title">Fix the shape.<br />Load the numbers.<br /><em>New job.</em></h1>
+        <p class="lede">NetSilcon builds one small neural network into hardware and lets you load its weights, biases and shifts. It works like an op-amp, where a few resistor values decide whether it is an amplifier, a filter or a comparator. Here a 201-byte model decides what the same chip does.</p>
+        <div class="btns">
+          <a class="btn pri" href={u('/files/NetSilcon-6x4_Datasheet.pdf')}>Read the datasheet <span aria-hidden="true">→</span></a>
+          <a class="btn" href={SITE.githubUrl} rel="noopener">GitHub</a>
+          <a class="btn" href={u('/playground/')}>Try it in the browser</a>
+        </div>
+      </div>
+      <figure class="fig hero-fig">
+        <NetDiagram />
+        <figcaption><span>Fig. 1 · NetSilcon-6x4 · 4 → 6 → 6 → 6 → 6 → 2</span><span>144 edges = 144 int8 weights</span></figcaption>
+      </figure>
+    </section>
+
+    <Proof />
+    <p class="small proofnote">Measured on the FPGA reference implementation: Sipeed Tang Nano 20K (Gowin GW2AR-18) at 27 MHz. Raw logs are in the repository.</p>
+
+    <section class="sec" aria-labelledby="how">
+      <SecHead no="§1 How it works" title="Three steps, one chip, many jobs." id="how">A microcontroller runs a network by fetching and decoding instructions, so even a tiny one costs it thousands of clock cycles. A fully hardwired network is fast but can only ever do one job. NetSilcon sits in between.</SecHead>
+      <div class="cols cols-3">
+        <div>
+          <Icon name="shape" />
+          <span class="step-no">01 · fixed in hardware</span>
+          <h3>Fix the shape</h3>
+          <p class="mut">The network's wiring is built into the logic: 4 inputs, four hidden layers of 6 neurons, 2 outputs. No instructions to fetch, no cache, no operating system.</p>
+          <p class="callout">26 neurons · 72 multipliers · 15 clocks</p>
+        </div>
+        <div>
+          <Icon name="upload" />
+          <span class="step-no">02 · loaded at run time</span>
+          <h3>Load the numbers</h3>
+          <p class="mut">Weights, biases and layer shifts arrive as one 201-byte image over UART. It is checked with a CRC in a staging buffer, then swapped in at once. A damaged image is refused.</p>
+          <p class="callout">C3 + 201 bytes + CRC-16 · swap in 7.4 µs</p>
+        </div>
+        <div>
+          <Icon name="job" />
+          <span class="step-no">03 · same silicon</span>
+          <h3>New job</h3>
+          <p class="mut">The same bitstream has detected motor faults, decided when to water a field and driven a rover, just by loading a different model file.</p>
+          <p class="callout">3 jobs · 576/576 bit-exact each</p>
+        </div>
+      </div>
+      <p class="more"><a href={u('/technology/')}>How it works, step by step →</a></p>
+    </section>
+
+    <section class="sec" aria-labelledby="cmp">
+      <SecHead no="§2 Comparison" title="Same int8 network, five kinds of hardware." id="cmp">Batch 1, the way a sensor-side decision is made. Every row says how its number was obtained.</SecHead>
+      <BenchTable />
+      <div class="cmpnote">
+        <p><b class="num">≈ 25×</b> faster and <b class="num">24–36×</b> less energy per inference than the STM32F407 that would normally sit in the device.</p>
+        <p class="mut">A laptop CPU is about <b class="num">5×</b> faster on a network this small. It also draws 10–55 W and needs an operating system. NetSilcon took exactly 15 clocks on every one of 9,600 hardware-in-the-loop decisions.</p>
+        <p><a href={u('/benchmarks/')}>Method and sources →</a></p>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="uses">
+      <SecHead no="§3 Use cases" title="Small, fast, repeatable decisions next to a sensor." id="uses">Any job with 4 inputs and 2 outputs fits. Three have trained model files today; the others are example input sets from the datasheet.</SecHead>
+      <div class="cardgrid">
+        {applications.slice(0, 6).map((a) => (
+          <a class="usecard" href={u(`/applications/#${a.id}`)}>
+            <Icon name={a.icon} />
+            <h3>{a.title}</h3>
+            <p class="small">{a.inputs.join(' · ')}</p>
+            <p class={a.model ? 'state ok' : 'state'}>{a.model ? 'Model file, verified on FPGA' : 'Example input set'}</p>
+          </a>
+        ))}
+      </div>
+      <p class="more"><a href={u('/applications/')}>All applications →</a></p>
+    </section>
+
+    <section class="sec" aria-labelledby="status">
+      <SecHead no="§4 Status" title="What is proven, and what is still a target." id="status">NetSilcon is a working FPGA prototype, not a fabricated chip. Numbers on this site carry a label so you always know which is which.</SecHead>
+      <div class="status2">
+        <div class="panel pad">
+          <h3>Proven on the FPGA reference <Tag b="M" /></h3>
+          <ul class="ticks">
+            <li>Live inference over UART, 15 clocks every time</li>
+            <li>CRC-safe model upload in 31 ms; a damaged model is refused and the old one keeps running</li>
+            <li>Three jobs on one bitstream: motor-fault detector, irrigation controller, rover driver</li>
+            <li>576 / 576 bit-exact results for each job</li>
+            <li>The real FPGA drove a simulated rover for 9,600 decisions: 0 mismatches, 0 crashes, also with ±2 cm sensor noise</li>
+          </ul>
+        </div>
+        <div class="panel pad tgtpanel">
+          <h3>Design targets, not built yet <Tag b="T" /></h3>
+          <ul class="ticks t">
+            <li>Production silicon: QFN-24, 4 × 4 mm, 3.3 V, about 2.5 mA</li>
+            <li>SPI interface, mode 0, up to 10 MHz</li>
+            <li>On-chip flash: the model survives power-off</li>
+          </ul>
+          <p class="small" style="margin:16px 0 0">Today an uploaded model lives in registers, and the built-in model returns at power-up. The rover tests ran in simulation with the real FPGA in the loop, not with real sensors yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="watch">
+      <SecHead no="§5 Watch" title="The two-minute keynote." id="watch" />
+      <div class="video">
+        <video controls preload="none" playsinline poster={u('/media/NetSilcon_Keynote.jpg')}>
+          <source src={u('/media/NetSilcon_Keynote.mp4')} type="video/mp4" />
+          <a href={u('/media/NetSilcon_Keynote.mp4')}>Download the keynote video (MP4)</a>
+        </video>
+      </div>
+      <p class="small" style="margin-top:10px">2 min 5 s · <a href={u('/news/')}>More videos and posts →</a></p>
+    </section>
+
+    <section class="sec" aria-labelledby="road">
+      <SecHead no="§6 Roadmap" title="From one FPGA board to a chip." id="road" />
+      <div class="cols cols-3 road">
+        {roadmap.map((r) => (
+          <div class={r.state}>
+            <span class="step-no">{r.phase}</span>
+            <ul class="ticks">{r.items.map((i) => <li>{i}</li>)}</ul>
+          </div>
+        ))}
+      </div>
+      <p class="more"><a href={u('/roadmap/')}>Full roadmap →</a></p>
+    </section>
+
+    <section class="cta" aria-labelledby="cta">
+      <div>
+        <h2 id="cta">Build it, test it, break it.</h2>
+        <p class="lede">The RTL, the Python tools, the models and every test log are open source under Apache-2.0. A Tang Nano 20K board is all the hardware you need.</p>
+      </div>
+      <div class="btns">
+        <a class="btn pri" href={SITE.githubUrl} rel="noopener">Get the code on GitHub</a>
+        <a class="btn" href={u('/docs/getting-started/')}>Getting started</a>
+        <a class="btn" href={u('/about/#contact')}>Contact</a>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(24px, 4vw, 56px); padding-block: clamp(32px, 5vw, 64px); align-items: start; }
+  .hero h1 em { font-style: normal; color: var(--acc); }
+  .hero .lede { margin: 22px 0 28px; }
+  .hero-fig { align-self: start; }
+  .proofnote { margin: 10px 0 0; }
+  .more { margin: 18px 0 0; font-size: 15px; }
+  .more a { text-decoration: none; color: var(--acc); font-weight: 600; }
+  .cols h3 { margin-bottom: 8px; }
+  .cols .mut { font-size: 16px; }
+  .cmpnote { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 6fr) minmax(0, 3fr); gap: 24px; margin-top: 20px; font-size: 16px; }
+  .cmpnote p { margin: 0; }
+  .cmpnote a { color: var(--acc); font-weight: 600; text-decoration: none; }
+  .usecard { text-decoration: none; display: block; transition: background-color .15s; }
+  .usecard:hover { background: var(--acc-bg); color: inherit; }
+  .usecard h3 { margin-bottom: 8px; }
+  .usecard .small { margin-bottom: 12px; }
+  .state { font: 12px var(--mono); color: var(--mut); margin: 0; }
+  .state.ok { color: var(--acc); }
+  .status2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .pad { padding: clamp(18px, 2.4vw, 28px); }
+  .pad h3 { margin-bottom: 14px; }
+  .tgtpanel { border-color: var(--tgt-line); border-style: dashed; }
+  .ticks { list-style: none; margin: 0; padding: 0; }
+  .ticks li { position: relative; padding: 8px 0 8px 22px; border-top: 1px solid var(--rule-2); font-size: 16px; }
+  .ticks li:first-child { border-top: 0; }
+  .ticks li::before { content: ''; position: absolute; left: 2px; top: 17px; width: 9px; height: 5px; border-left: 1.5px solid var(--acc); border-bottom: 1.5px solid var(--acc); transform: rotate(-45deg); }
+  .ticks.t li::before, .road .next li::before, .road .later li::before { border: 1.5px dashed var(--tgt-line); width: 8px; height: 8px; transform: none; top: 15px; }
+  .road .next .step-no, .road .later .step-no { color: var(--tgt); }
+  .cta { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px 48px; align-items: end; border-top: 2px solid var(--ink); padding-top: 28px; margin-top: clamp(48px, 7vw, 96px); }
+  .cta .lede { margin: 14px 0 0; }
+  .cta .btns { justify-content: flex-end; }
+  @media (max-width: 1000px) {
+    .hero { grid-template-columns: minmax(0, 1fr); }
+    .hero-fig { max-width: 720px; }
+    .cmpnote { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  }
+  @media (max-width: 800px) {
+    .status2, .cta { grid-template-columns: minmax(0, 1fr); }
+    .cta .btns { justify-content: flex-start; }
+  }
+</style>
