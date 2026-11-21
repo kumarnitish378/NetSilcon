@@ -24,7 +24,7 @@ function rehypeBaseLinks() {
 }
 
 export default defineConfig({
-  site: process.env.SITE_URL || 'https://netsilcon.example',
+  site: process.env.SITE_URL || 'https://kumarnitish378.github.io',
   base: process.env.BASE_PATH || '/',
   trailingSlash: 'ignore',
   build: { assets: 'assets' },

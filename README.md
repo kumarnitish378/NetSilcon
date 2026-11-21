@@ -1,5 +1,7 @@
 # NetSilcon website
 
+Live at **https://kumarnitish378.github.io/NetSilcon/**
+
 The official website for **NetSilcon**, open-source neural-network hardware: a fixed network shape with loadable weights, biases and shifts.
 
 Built with [Astro](https://astro.build) (static output), MDX for the docs and [Pagefind](https://pagefind.app) for search. No backend, no tracking, no external requests: fonts, KaTeX and every graphic are served from the site itself.
@@ -24,7 +26,7 @@ npm run preview      # serves dist/ at http://localhost:4321
 
 ## Before you publish
 
-1. **GitHub link.** Open `src/config.ts` and set `githubUrl` to the real repository address. Every GitHub link on the site comes from this one line.
+1. **GitHub link.** `githubUrl` in `src/config.ts` points to the NetSilcon-6x4 code repository. Every GitHub link on the site comes from this one line. That repository must be public for visitors to open the links.
 2. **Contact.** In the same file, fill in `contact.email`, `contact.linkedin` and `contact.github`, or leave a field empty to hide it.
 3. **Site address.** Set the `SITE_URL` environment variable to your public address when you build (used for the sitemap, canonical links and the Open Graph image). Example: `SITE_URL=https://netsilcon.dev npm run build`.
 
@@ -45,7 +47,7 @@ Import the repository. Build command `npm run build`, output folder `dist`. Add 
   SITE_URL=https://username.github.io BASE_PATH=/netsilcon-website npm run build
   ```
 
-A minimal workflow, saved as `.github/workflows/deploy.yml`:
+This repository already contains `.github/workflows/deploy.yml`, which builds the site for `https://kumarnitish378.github.io/NetSilcon/` on every push to `main`. A minimal version of the same workflow, for another repository:
 
 ```yaml
 name: Deploy
