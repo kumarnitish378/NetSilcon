@@ -1,0 +1,52 @@
+---
+import Base from '../../layouts/Base.astro';
+import SecHead from '../../components/SecHead.astro';
+import { getCollection } from 'astro:content';
+const posts = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime() || b.data.order - a.data.order);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+---
+<Base title="News" description="NetSilcon news: the launch, design notes, test results and videos.">
+  <div class="wrap">
+    <header class="pagehd"><div><span class="crumb">News</span><h1>News and notes.</h1><p class="lede">Launch news, design notes and test results, as the project moves from FPGA towards silicon.</p></div></header>
+    <section class="sec" aria-label="Posts">
+      <ol class="posts">
+        {posts.map((p, i) => (
+          <li class={i === 0 ? 'first' : ''}>
+            <time class="callout" datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time>
+            <div>
+              <h2><a href={u(`/news/${p.id}/`)}>{p.data.title}</a></h2>
+              <p class="mut">{p.data.description}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+    <section class="sec" aria-labelledby="videos">
+      <SecHead no="Videos" title="Watch." id="videos" />
+      <div class="vids">
+        <figure>
+          <div class="video"><video controls preload="none" playsinline poster={u('/media/NetSilcon_Keynote.jpg')}><source src={u('/media/NetSilcon_Keynote.mp4')} type="video/mp4" /><a href={u('/media/NetSilcon_Keynote.mp4')}>Download the keynote (MP4)</a></video></div>
+          <figcaption><b>Keynote</b> <span class="small">· 2 min 5 s · the idea and the numbers</span></figcaption>
+        </figure>
+        <figure>
+          <div class="video"><video controls preload="none" playsinline poster={u('/media/NetSilcon_Demo.jpg')}><source src={u('/media/NetSilcon_Demo.mp4')} type="video/mp4" /><a href={u('/media/NetSilcon_Demo.mp4')}>Download the demo (MP4)</a></video></div>
+          <figcaption><b>Demo</b> <span class="small">· 2 min 7 s · the board at work</span></figcaption>
+        </figure>
+      </div>
+    </section>
+  </div>
+</Base>
+<style>
+  .posts { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); }
+  .posts li { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 9fr); gap: 8px 24px; padding: 22px 0; border-bottom: 1px solid var(--rule); }
+  .posts h2 { font-size: clamp(20px, 2.2vw, 26px); margin-bottom: 8px; }
+  .posts h2 a { text-decoration: none; }
+  .posts .first h2 { font-size: clamp(26px, 3vw, 36px); }
+  .posts .mut { margin: 0; max-width: 64ch; }
+  .vids { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .vids figure { margin: 0; }
+  .vids figcaption { margin-top: 10px; font-size: 15px; }
+  @media (max-width: 760px) { .posts li, .vids { grid-template-columns: minmax(0, 1fr); } }
+</style>

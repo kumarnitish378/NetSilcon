@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+export async function getStaticPaths() {
+  const posts = await getCollection('news');
+  return posts.map((p) => ({ params: { slug: p.id }, props: { post: p } }));
+}
+const { post } = Astro.props;
+const { Content } = await render(post);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+---
+<Base title={post.data.title} description={post.data.description}>
+  <div class="wrap">
+    <article class="post">
+      <header>
+        <a class="crumb" href={`${base}/news/`}>← News</a>
+        <h1>{post.data.title}</h1>
+        <p class="callout">{fmt(post.data.date)} · Nitish Kumar Sharma</p>
+      </header>
+      <div class="prose"><Content /></div>
+    </article>
+  </div>
+</Base>
+<style>
+  .post { padding-block: clamp(32px, 5vw, 64px); max-width: 760px; position: relative; background: var(--bg); }
+  .post header { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 28px; }
+  .crumb { font: 500 13px var(--mono); color: var(--mut); text-decoration: none; display: inline-flex; min-height: 44px; align-items: center; }
+  .post h1 { font-size: clamp(32px, 4.4vw, 52px); margin: 6px 0 14px; }
+  .post .callout { margin: 0; }
+  .prose :global(p), .prose :global(li) { font-size: 18px; }
+</style>

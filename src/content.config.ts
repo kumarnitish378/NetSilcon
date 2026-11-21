@@ -8,7 +8,7 @@ const docs = defineCollection({
 
 const news = defineCollection({
   loader: glob({ pattern: '**/*.mdx', base: './src/content/news' }),
-  schema: z.object({ title: z.string(), description: z.string(), date: z.coerce.date() }),
+  schema: z.object({ title: z.string(), description: z.string(), date: z.coerce.date(), order: z.number().default(0) }),
 });
 
 export const collections = { docs, news };

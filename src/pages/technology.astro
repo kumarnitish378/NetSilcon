@@ -1,0 +1,220 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import NetDiagram from '../components/NetDiagram.astro';
+import Waveform from '../components/Waveform.astro';
+import Tag from '../components/Tag.astro';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const tex = (s: string, display = true) => katex.renderToString(s, { displayMode: display, throwOnError: true, output: 'html' });
+const eqAcc = tex(String.raw`\mathrm{acc} = b + \sum_{i=0}^{N-1} w_i\,x_i`);
+const eqRelu = tex(String.raw`\mathrm{acc}' = \max(\mathrm{acc},\,0) \qquad \text{(hidden layers only)}`);
+const eqOut = tex(String.raw`y = \operatorname{clamp}\!\left(\left(\mathrm{acc}' + 2^{\,s-1}\right) \gg s\right)`);
+const eqFull = tex(String.raw`y = \operatorname{clamp}\!\Big(\operatorname{ReLU}\big(\big(\textstyle\sum w\cdot x + b + 2^{\,s-1}\big) \gg s\big)\Big)`);
+const eqWorst = tex(String.raw`32\,767 + 6 \times 127 \times 127 = 129\,541 \;<\; 2^{19} = 524\,288`);
+const eqQ = tex(String.raw`q = \operatorname{round}\!\left(\frac{\text{value}}{\text{full scale}} \times 127\right)`);
+const eqEx = tex(String.raw`\mathrm{acc} = -7789 + 64(1) + 102(-2) + 74(36) + 53(127) = 1466`);
+const eqEx2 = tex(String.raw`y = (1466 + 2^{7}) \gg 8 = 1594 \gg 8 = 6`);
+---
+<Base title="Technology" description="How NetSilcon works: a fixed neural-network shape in hardware with loadable weights, explained step by step with real numbers.">
+  <div class="wrap">
+    <header class="pagehd">
+      <div>
+        <span class="crumb">Technology</span>
+        <h1>How NetSilcon works, one step at a time.</h1>
+        <p class="lede">No prior knowledge of neural networks needed. We'll start with an op-amp, follow one real number through one neuron, and end with the model swap that makes the same chip do a new job.</p>
+      </div>
+      <nav class="toc" aria-label="On this page">
+        <a href="#idea">1 · The op-amp idea</a><a href="#neuron">2 · One neuron, with real numbers</a><a href="#network">3 · From neurons to a network</a><a href="#pipeline">4 · The 15-clock pipeline</a><a href="#loading">5 · Loading a model safely</a><a href="#why">6 · Why fix the shape?</a>
+      </nav>
+    </header>
+
+    <section class="sec" aria-labelledby="idea">
+      <SecHead no="§1" title="The op-amp idea." id="idea">An op-amp is one fixed circuit. Add two resistors and it amplifies. Choose different parts and it filters, or compares. The circuit never changes; a few values decide its job.</SecHead>
+      <div class="two">
+        <div class="prose">
+          <p>NetSilcon does the same with a neural network. The <b>shape</b> of the network, how many neurons and how they connect, is built into the hardware. The <b>numbers</b> inside it are not. Load a different set of 144 weights, 26 biases and 5 shifts, and the same hardware answers a different question.</p>
+          <p>Think of a school exam. The <i>format</i> is fixed: four questions, a total, a pass mark. The <i>marking scheme</i> changes from subject to subject. NetSilcon's shape is the format; the model file is the marking scheme.</p>
+          <p>This puts NetSilcon between two familiar options:</p>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th></th><th>General processor</th><th>NetSilcon</th><th>Fully hardwired</th></tr></thead>
+            <tbody>
+              <tr><td class="mut">Network shape</td><td>anything</td><td><b>fixed</b></td><td>fixed</td></tr>
+              <tr><td class="mut">Weights</td><td>anything</td><td><b>loadable</b></td><td>fixed</td></tr>
+              <tr><td class="mut">Speed</td><td>slow: instructions</td><td><b>fast: dataflow</b></td><td>fast</td></tr>
+              <tr><td class="mut">Jobs per chip</td><td>many</td><td><b>many, same shape</b></td><td>one</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="neuron">
+      <SecHead no="§2" title="One neuron, with real numbers." id="neuron">A neuron is a weighted vote. Each input gets a weight that says how much it matters and in which direction. Add the votes, add a bias, and decide.</SecHead>
+      <div class="two">
+        <div class="prose">
+          <h3>Step 1 · Turn sensor readings into bytes</h3>
+          <p>The chip works on whole numbers. Every input is scaled to 0…127 by its full-scale value:</p>
+          <div set:html={eqQ} />
+          <p>Take the motor-fault model with a motor running at 10 A, 24 V, 3500 rpm and 50 °C. With full scales of 20 A, 30 V, 6000 rpm and 120 °C, the four input bytes are <code>64 102 74 53</code>.</p>
+          <h3>Step 2 · Multiply, add, and add the bias</h3>
+          <div set:html={eqAcc} />
+          <p>The first neuron's weights in <code>motor_fault.json</code> are <code>1, −2, 36, 127</code> and its bias is <code>−7789</code>:</p>
+          <div set:html={eqEx} />
+          <h3>Step 3 · ReLU: keep positives, drop negatives</h3>
+          <div set:html={eqRelu} />
+          <p>1466 is positive, so it passes. In hardware this is just a look at the sign bit.</p>
+          <h3>Step 4 · Round, shift, clamp</h3>
+          <div set:html={eqOut} />
+          <p>The shift <i>s</i> divides by a power of two, which in hardware is only rewiring. Adding 2<sup>s−1</sup> first makes it round to the nearest whole number instead of always rounding down. This layer's shift is 8:</p>
+          <div set:html={eqEx2} />
+          <p>Then clamp: hidden layers keep 0…127, the output layer keeps −128…127. So this neuron passes <b>6</b> to the next layer. You can check this number yourself in the <a href={u('/playground/')}>playground</a>.</p>
+        </div>
+        <aside class="side">
+          <div class="panel pad">
+            <p class="callout" style="margin:0 0 6px">All in one line <Tag b="M" /></p>
+            <div class="eqbox" set:html={eqFull} />
+            <p class="small" style="margin:10px 0 0">Identical in Verilog (<code>rtl/nn_layer.v</code>) and Python (<code>host/netsilcon_host.py</code>), checked bit for bit.</p>
+          </div>
+          <div class="panel pad">
+            <p class="callout" style="margin:0 0 6px">Why it can never overflow</p>
+            <p class="small" style="margin:0 0 8px">The biggest possible sum, with the largest bias and every input and weight at its limit, still fits a 20-bit signed accumulator:</p>
+            <div class="eqbox" set:html={eqWorst} />
+          </div>
+          <div class="panel pad">
+            <p class="callout" style="margin:0 0 6px">Number formats</p>
+            <dl class="dl">
+              <dt>inputs</dt><dd>0…127, unsigned</dd>
+              <dt>weights</dt><dd>int8</dd>
+              <dt>biases</dt><dd>int16</dd>
+              <dt>accumulator</dt><dd>20-bit signed</dd>
+              <dt>shifts</dt><dd>0…15, one per layer</dd>
+            </dl>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="network">
+      <SecHead no="§3" title="From neurons to a network." id="network">Six neurons side by side make a layer. Stack four such layers between 4 inputs and 2 outputs, and every neuron of one layer listens to every neuron of the layer before.</SecHead>
+      <div class="two">
+        <figure class="fig"><NetDiagram /><figcaption><span>4 inputs → 4 hidden layers of 6 → 2 outputs</span><span>26 neurons · 144 weights</span></figcaption></figure>
+        <div class="prose">
+          <p>Count the wires: 4×6 + 6×6 + 6×6 + 6×6 + 6×2 = <b>144</b>. Each wire is one int8 weight. Each of the 26 neurons has one int16 bias, and each of the 5 layers has one shift. Together that is the 201-byte model image.</p>
+          <p>Back to our motor at 50 °C: the two outputs come out as <code>y0 = 5</code> and <code>y1 = −11</code>. For a classifier, the rule is simple: <b>if y1 &gt; y0, the answer is the second label</b>. Here y1 is smaller, so the answer is HEALTHY.</p>
+          <p>Now let the temperature climb, keeping everything else the same:</p>
+          <div class="tbl-wrap">
+            <table class="num">
+              <thead><tr><th>Temp</th><th class="r">x3</th><th class="r">y0</th><th class="r">y1</th><th>Decision</th></tr></thead>
+              <tbody>
+                <tr><td>50 °C</td><td class="r">53</td><td class="r">5</td><td class="r">−11</td><td>HEALTHY</td></tr>
+                <tr><td>70 °C</td><td class="r">74</td><td class="r">4</td><td class="r">−10</td><td>HEALTHY</td></tr>
+                <tr><td>80 °C</td><td class="r">85</td><td class="r">2</td><td class="r">−4</td><td>HEALTHY</td></tr>
+                <tr class="us"><td>90 °C</td><td class="r">95</td><td class="r">−5</td><td class="r">9</td><td><b>FAULT</b></td></tr>
+                <tr class="us"><td>100 °C</td><td class="r">106</td><td class="r">−12</td><td class="r">21</td><td><b>FAULT</b></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top:10px">Computed with the bit-exact model from <code>motor_fault.json</code>: the cooling-failure demo scenario in the repository.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="pipeline">
+      <SecHead no="§4" title="The 15-clock pipeline." id="pipeline">A microcontroller does these multiplications one after another. NetSilcon does all the neurons of a layer at the same time, so the time depends only on the number of layers.</SecHead>
+      <div class="two">
+        <div class="prose">
+          <h3>72 multipliers, used twice</h3>
+          <p>A fully parallel network needs 144 multipliers, one per weight. The FPGA on the reference board has room for 96. So each neuron gets half the multipliers it needs and uses them on two clocks in a row. Picture six cooks with half the knives they need: each cook chops the first half of the vegetables, then the second half.</p>
+          <h3>Three clocks per layer</h3>
+          <div class="tbl-wrap" style="margin-bottom:1.2em">
+            <table>
+              <thead><tr><th>Clock</th><th>Work</th></tr></thead>
+              <tbody>
+                <tr><td class="num">1</td><td>first half of the products + bias → partial sum</td></tr>
+                <tr><td class="num">2</td><td>second half of the products + partial sum → full sum</td></tr>
+                <tr><td class="num">3</td><td>ReLU, round, shift, clamp → output register</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Five layers × three clocks = <b>15 clocks</b>, every time. At 27 MHz that is 0.556 µs. There is no cache to miss and no interrupt to wait for, so the answer never comes early or late.</p>
+          <h3>Like an assembly line</h3>
+          <p>A car factory does not wait for one car to finish before starting the next. Neither does NetSilcon: a new input can enter every 2 clocks while earlier ones are still moving through. That gives 13.5 million inferences per second at 27 MHz.</p>
+        </div>
+        <div class="side">
+          <figure class="fig"><Waveform /><figcaption><span>Timing on the FPGA reference</span><span>latency counted in hardware <Tag b="M" /></span></figcaption></figure>
+          <div class="cols cols-3 mini">
+            <div><div class="big num">15</div><div class="small">clocks latency</div></div>
+            <div><div class="big num">2</div><div class="small">clocks between inputs</div></div>
+            <div><div class="big num">13.5 M</div><div class="small">inferences / s</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="loading">
+      <SecHead no="§5" title="Loading a model safely." id="loading">Changing the job must never leave the chip half-changed. So a new model is never written over the running one directly.</SecHead>
+      <ol class="flow">
+        <li><span class="step-no">1 · receive</span><h3>Into the staging buffer</h3><p class="mut">The host sends <code>C3</code>, the 201-byte image and its CRC-16. The bytes go into a separate staging memory. The running model keeps working.</p></li>
+        <li><span class="step-no">2 · check</span><h3>CRC-16 on the fly</h3><p class="mut">The CRC is computed as the bytes arrive. One wrong bit and the image is refused with “CRC error”. A frame that stops halfway times out after 10 ms.</p></li>
+        <li><span class="step-no">3 · swap</span><h3>All at once</h3><p class="mut">Only if the CRC is good is the buffer copied into the network: 201 clocks, 7.4 µs. There is never a moment with half the old model and half the new one.</p></li>
+        <li><span class="step-no">4 · confirm</span><h3>Reply and count</h3><p class="mut">The chip replies with the status, the CRC it computed and how many models it has accepted. <code>C5</code> asks which model is running.</p></li>
+      </ol>
+      <div class="note" style="margin-top:20px"><p>It's like writing a new timetable on a draft sheet, checking it twice, and only then pinning it to the notice board in one go. Tested on the board: an upload with one CRC bit flipped was refused, and the old model went on answering, 64 / 64 vectors still correct. <Tag b="M" /></p></div>
+      <div class="note tgt"><p>Today the uploaded model lives in registers, so the built-in model comes back at power-up. In the production chip the staging buffer becomes on-chip flash, loaded at power-up with the same CRC check. <Tag b="T" /></p></div>
+    </section>
+
+    <section class="sec" aria-labelledby="why">
+      <SecHead no="§6" title="Why fix the shape?" id="why">Because most small decisions next to a sensor have the same form: a handful of readings in, a yes/no or a value out.</SecHead>
+      <div class="cols cols-3">
+        <div><h3>Speed you can predict</h3><p class="mut">No instruction fetch means the same 15 clocks every time. A motor drive or a safety loop can plan around that.</p></div>
+        <div><h3>The cost of flexibility, measured</h3><p class="mut">With the weights fixed as constants, the design used 21 % of the FPGA's logic. With weights, biases and shifts loadable, it uses 49 %. That difference is the price of “many jobs” instead of one. <Tag b="M" /></p></div>
+        <div><h3>An honest limit</h3><p class="mut">170 parameters is deliberately small. It suits sensor-level decisions, not vision or language. A larger shape, 16 → 64×6 → 16, is in design.</p></div>
+      </div>
+      <p class="more"><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4 specifications →</a> &nbsp; <a href={u('/docs/model-image/')}>Model image format →</a></p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .toc { display: flex; flex-direction: column; border-top: 1px solid var(--ink); }
+  .toc a { font: 14px var(--mono); text-decoration: none; padding: 9px 0; border-bottom: 1px solid var(--rule-2); min-height: 40px; color: var(--mut); }
+  .toc a:hover { color: var(--acc); }
+  .two { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
+  .two .prose h3:first-child { margin-top: 0; }
+  .side { display: grid; gap: 16px; }
+  .pad { padding: 18px 20px; }
+  .eqbox { overflow-x: auto; overflow-y: hidden; font-size: 15px; }
+  .eqbox :global(.katex-display) { margin: 4px 0; }
+  .prose :global(.katex-display) { margin: .6em 0 1.1em; }
+  .dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0; font-size: 15px; }
+  .dl dt { font: 13px var(--mono); color: var(--mut); }
+  .dl dd { margin: 0; }
+  .mini > * { padding: 14px 12px; }
+  .mini .big { font-size: clamp(22px, 2.4vw, 28px); font-weight: 500; }
+  .flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); counter-reset: f; }
+  .flow li { padding: 20px 18px 20px; border-left: 1px solid var(--rule); position: relative; }
+  .flow li:first-child { border-left: 0; padding-left: 0; }
+  .flow li:not(:last-child)::after { content: '→'; position: absolute; right: -8px; top: 18px; font: 14px var(--mono); color: var(--acc); background: var(--bg); padding: 0 2px; }
+  .flow h3 { margin-bottom: 8px; }
+  .flow .mut { font-size: 16px; margin: 0; }
+  .more { margin: 20px 0 0; }
+  .more a { color: var(--acc); font-weight: 600; text-decoration: none; }
+  @media (max-width: 960px) {
+    .two { grid-template-columns: minmax(0, 1fr); }
+    .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .flow li:nth-child(3) { border-left: 0; padding-left: 0; }
+    .flow li:nth-child(n+3) { border-top: 1px solid var(--rule); }
+    .flow li:nth-child(2)::after { display: none; }
+  }
+  @media (max-width: 560px) {
+    .flow { grid-template-columns: minmax(0, 1fr); }
+    .flow li { border-left: 0; padding-left: 0; padding-right: 0; }
+    .flow li + li { border-top: 1px solid var(--rule); }
+    .flow li::after { display: none; }
+  }
+</style>

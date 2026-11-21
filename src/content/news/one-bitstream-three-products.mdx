@@ -1,0 +1,30 @@
+---
+title: "One bitstream, three products"
+description: "The hardware only knows the network's shape. The numbers arrive later, over USB, with a CRC check."
+date: 2026-11-21
+order: 3
+---
+
+One FPGA bitstream. Three different products. No re-synthesis.
+
+In NetSilcon-6x4, the hardware only knows the network's shape. The numbers arrive later, over USB:
+
+- 144 weights (int8), 26 biases (int16) and 5 scaling shifts: **201 bytes** in total
+- plus a CRC-16, sent in about 31 ms
+
+The same board became, in turn:
+
+- a BLDC **motor-fault detector** (current, voltage, speed, temperature)
+- an **irrigation controller** (soil moisture, air temperature, humidity, sunlight), 97.4 % accurate
+- a **rover driver** (4 LiDAR distances in, speed and steering out)
+
+## Two design choices that paid off
+
+1. **The upload goes into a staging RAM first.** Only if the CRC is correct is it copied into the network, in 7.4 µs. I sent a model with one wrong CRC bit on purpose: refused, and the old model kept running.
+2. **The scaling shifts are loadable too**, not just the weights. Each model brings its own number range.
+
+## The price of flexibility
+
+Programmability has a cost. While nothing could write the weights, synthesis turned them into constants and the design used 21 % of the FPGA's logic. With weights, biases and shifts truly writable, it uses 49 %. That gap is the measured silicon cost of "one chip, many jobs".
+
+Details are in [Technology](/technology/) and the [model image format](/docs/model-image/).

@@ -1,0 +1,27 @@
+---
+title: "My FPGA drove a robot that doesn't exist"
+description: "Hardware-in-the-loop testing: the real NetSilcon-6x4 made 9,600 real-time decisions for a simulated rover."
+date: 2026-11-21
+order: 1
+---
+
+I don't have the LiDAR yet, so I used a method I know from drone autopilots: hardware-in-the-loop (HIL).
+
+- The PC simulates the world, the 360° LiDAR and the physics
+- Every 50 ms it sends 4 distances over USB to the FPGA
+- The real NetSilcon-6x4 on the Tang Nano 20K computes speed and steering in 0.556 µs and sends them back
+- The PC moves the virtual rover, and repeats
+
+## Results
+
+- 9,600 real-time decisions across 4 virtual worlds
+- 0 mismatches against the Python model, checked on every single step
+- 0 crashes, 0 stuck runs
+- With ±2 cm sensor noise: the same, with almost identical distances driven
+- USB round trip: about 16 ms on average, 19.5 ms at worst, well inside the 50 ms loop
+
+## What HIL proves, and what it can't
+
+It proves the hardware makes the same decisions as the simulation, in real time. It can't prove how real LiDAR noise, shiny surfaces and real motors behave. That is the next test.
+
+How to run it yourself: [Rover simulator and hardware-in-the-loop](/docs/rover-simulator/).

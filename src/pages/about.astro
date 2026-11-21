@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import { SITE } from '../config';
+const c = SITE.contact;
+const any = c.email || c.linkedin || c.github;
+---
+<Base title="About and contact" description="NetSilcon is a personal open-source project by Nitish Kumar Sharma, an embedded engineer.">
+  <div class="wrap">
+    <header class="pagehd"><div><span class="crumb">About</span><h1>About NetSilcon.</h1><p class="lede">NetSilcon is a personal, open-source project by Nitish Kumar Sharma, an embedded engineer.</p></div></header>
+    <section class="sec" aria-labelledby="why">
+      <SecHead no="§1 Why" title="Smart decisions on every device." id="why" />
+      <div class="prose">
+        <p>Most devices already measure the world: current in a motor, voltage across a battery cell, the distance to a wall. What they lack is a cheap, fast and predictable way to decide what those readings mean. A general processor can do it, but slowly and with jitter. A fully hardwired circuit is fast, but it can only ever do one job.</p>
+        <p>NetSilcon tries the middle path: fix the network's shape in hardware, and keep its numbers loadable. The long-term aim is small, low-power intelligence on every edge device, starting with sensor-level decisions and growing from there.</p>
+        <p>The work is done in the open. The RTL, the tools, the model files and every test log are on GitHub under the Apache License 2.0. Numbers on this site are labelled as measured, estimated or target, and prototype results stay prototype results.</p>
+      </div>
+    </section>
+    <section class="sec" aria-labelledby="how">
+      <SecHead no="§2 How it was built" title="Model first, then hardware, then proof." id="how" />
+      <ol class="ol">
+        <li>A bit-exact Python model of the integer maths.</li>
+        <li>Verilog written to match it, checked in Icarus Verilog testbenches.</li>
+        <li>Synthesis and timing in Gowin EDA, then the open-source yosys / nextpnr flow.</li>
+        <li>On the Tang Nano 20K: every run logged, every result compared bit for bit with Python.</li>
+      </ol>
+    </section>
+    <section class="sec" aria-labelledby="contact">
+      <SecHead no="§3 Contact" title="Get in touch." id="contact">If you build motor drives, battery systems, robots or FPGA tools, or you simply found a bug, I'd like to hear from you.</SecHead>
+      <ul class="contact">
+        {c.email && <li><span class="callout">Email</span><span class="num">{c.email}</span><a class="btn" href={`mailto:${c.email}`}>Write an email</a></li>}
+        {c.linkedin && <li><span class="callout">LinkedIn</span><a href={c.linkedin} rel="noopener">{c.linkedin.replace('https://', '')}</a></li>}
+        {c.github && <li><span class="callout">GitHub</span><a href={c.github} rel="noopener">{c.github.replace('https://', '')}</a></li>}
+        <li><span class="callout">Issues and ideas</span><a href={`${SITE.githubUrl}/issues`} rel="noopener">Open an issue on the NetSilcon-6x4 repository</a></li>
+      </ul>
+      {!any && <p class="small" style="margin-top:10px">More contact options will be added here.</p>}
+    </section>
+  </div>
+</Base>
+<style>
+  .ol { max-width: 64ch; padding-left: 1.3em; margin: 0; }
+  .ol li { padding: 6px 0; }
+  .contact { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); max-width: 820px; }
+  .contact li { display: grid; grid-template-columns: 12em minmax(0, 1fr) auto; gap: 8px 20px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--rule); min-height: 64px; }
+  @media (max-width: 600px) { .contact li { grid-template-columns: minmax(0, 1fr); } }
+</style>

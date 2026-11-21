@@ -1,0 +1,44 @@
+---
+title: "Introducing NetSilcon"
+description: "A neural-network engine that sits next to the sensor. Fix the shape, load the numbers, and the same chip does a new job."
+date: 2026-11-21
+order: 4
+---
+
+Every motor, pump and battery around you has sensors. Almost none of them can think for themselves.
+
+Today I'm introducing **NetSilcon**, a neural-network engine you put right next to the sensor. The network's shape is fixed in hardware. The numbers inside it are loadable. Fix the shape, load the numbers, and the same chip does a new job.
+
+It works like an op-amp. The circuit never changes, but a few resistor values decide whether it is an amplifier, a filter or a comparator. In NetSilcon, the weights are the resistors.
+
+## It runs today
+
+This is not a concept. NetSilcon-6x4 runs on a Sipeed Tang Nano 20K FPGA board, a board that costs about ₹4,500. Measured on that board:
+
+- **0.556 µs per decision**, the same 15 clock cycles every time
+- **Three jobs on one bitstream:** a motor-fault detector, an irrigation controller and a rover driver
+- **A new job is 201 bytes**, loaded in about 31 ms, with a CRC check that refuses a damaged model
+- **Bit-exact:** 576 of 576 test cases match the trained model, for each job
+- **Hardware-in-the-loop:** the real FPGA drove a simulated rover for 9,600 real-time decisions, with 0 mismatches and 0 crashes
+
+## How it compares
+
+I ran the same network everywhere I could ([method and sources](/benchmarks/)):
+
+- About **25× faster** than a Cortex-M4 microcontroller, for **24–36× less energy** per decision
+- A laptop CPU is about 5× faster on a network this small, but it burns tens of watts and needs an operating system
+- GPUs and NPUs are built for big models. For a 200-byte network, starting them costs more than the maths
+
+## A companion chip
+
+NetSilcon is designed to sit beside a microcontroller. The MCU sends 4 bytes and reads back 2. UART works today. SPI is next, so it can drop onto an existing PCB beside the MCU in a motor drive, a battery pack, a pump, a drone or a robot.
+
+## What it is not, yet
+
+It is an FPGA prototype of a chip architecture, not a fabricated chip. It has not been tested with real sensors yet; that is the next step. Production silicon, SPI and on-chip flash are design targets, and they are labelled that way everywhere on this site.
+
+## What comes next
+
+The goal is a complete toolchain, [NetSilcon-Studio](/studio/): train your own network, choose your own FPGA, and generate the hardware. One day, a dedicated chip.
+
+Everything is open source under Apache-2.0, and every number traces back to a log in the repository. If you build motor drives, battery systems, robots or FPGA tools, I'd like to hear from you.

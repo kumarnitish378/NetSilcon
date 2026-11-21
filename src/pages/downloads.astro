@@ -1,0 +1,64 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import Icon from '../components/Icon.astro';
+import { SITE, repo, repoTree } from '../config';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const files = [
+  { icon: 'doc', t: 'NetSilcon-6x4 preliminary datasheet', d: 'Rev 0.1, 22 pages. Pinout, specifications with M/E/T basis, protocol, model image, application notes.', meta: 'PDF · 236 KB', href: u('/files/NetSilcon-6x4_Datasheet.pdf'), dl: true },
+  { icon: 'play', t: 'Keynote video', d: 'The idea and the numbers in two minutes.', meta: 'MP4 · 4.8 MB · 2:05', href: u('/media/NetSilcon_Keynote.mp4'), dl: true },
+  { icon: 'play', t: 'Demo video', d: 'The Tang Nano 20K at work.', meta: 'MP4 · 5.6 MB · 2:07', href: u('/media/NetSilcon_Demo.mp4'), dl: true },
+];
+const repoParts = [
+  { p: 'rtl/', d: 'The network in Verilog: nn_layer.v, netsilcon_top.v. Shape fixed, numbers loadable.' },
+  { p: 'board/', d: 'Tang Nano 20K top level, UART, model loader with CRC-16, pin and clock constraints.' },
+  { p: 'tb/', d: 'Testbenches: network, board self-test, UART, model upload.' },
+  { p: 'model/', d: 'Training, quantization and packing (numpy only).' },
+  { p: 'models/', d: 'Ready-made model files: motor_fault, irrigation, rover (v2), rover_v1.' },
+  { p: 'host/', d: 'PC tool: inference, upload, tests and logs.' },
+  { p: 'rover_sim/', d: 'Rover simulator, batch tests, hardware-in-the-loop, browser version.' },
+  { p: 'docs/', d: 'Architecture, protocol, results, benchmarks, and the raw hardware logs.' },
+  { p: 'bench/', d: 'The same network in C, for CPU and Cortex-M4 benchmarks.' },
+];
+---
+<Base title="Downloads and repositories" description="Download the NetSilcon-6x4 datasheet and videos, and find the open-source RTL, tools and model files.">
+  <div class="wrap">
+    <header class="pagehd">
+      <div><span class="crumb">Downloads</span><h1>Downloads and repositories.</h1><p class="lede">Everything is open source under the Apache License 2.0: hardware description, tools, model files and the logs behind every measured number.</p></div>
+      <div class="panel repo">
+        <Icon name="repo" />
+        <p class="callout" style="margin:0 0 4px">Main repository</p>
+        <p class="num" style="margin:0 0 14px;overflow-wrap:anywhere"><a href={SITE.githubUrl} rel="noopener">{SITE.githubUrl.replace('https://', '')}</a></p>
+        <a class="btn pri" href={SITE.githubUrl} rel="noopener">Open on GitHub</a>
+      </div>
+    </header>
+    <section class="sec" aria-labelledby="files">
+      <SecHead no="§1 Files" title="Documents and media." id="files" />
+      <ul class="files">
+        {files.map((f) => (
+          <li><Icon name={f.icon} /><div><h3>{f.t}</h3><p class="mut">{f.d}</p></div><span class="callout nw">{f.meta}</span><a class="btn" href={f.href} download={f.dl}>Download</a></li>
+        ))}
+      </ul>
+    </section>
+    <section class="sec" aria-labelledby="repo">
+      <SecHead no="§2 Repository" title="What is in NetSilcon-6x4." id="repo" />
+      <div class="tbl-wrap">
+        <table class="stack">
+          <thead><tr><th>Folder</th><th>Contents</th></tr></thead>
+          <tbody>{repoParts.map((r) => <tr><td data-l="Folder" class="num nw"><a href={repoTree(r.p)} rel="noopener">{r.p}</a></td><td data-l="Contents">{r.d}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:12px"><a href={repo('LICENSE')} rel="noopener">LICENSE</a> · Apache-2.0 · Copyright 2026 Nitish Kumar Sharma</p>
+    </section>
+  </div>
+</Base>
+<style>
+  .repo { padding: 20px; }
+  .files { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+  .files li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 16px 20px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+  .files .ico { margin: 0; }
+  .files h3 { margin-bottom: 4px; }
+  .files .mut { margin: 0; font-size: 15px; }
+  @media (max-width: 700px) { .files li { grid-template-columns: 32px minmax(0, 1fr); } .files .callout, .files .btn { grid-column: 2; justify-self: start; } }
+</style>

@@ -1,0 +1,130 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import Tag from '../components/Tag.astro';
+import { repoTree } from '../config';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const steps = [
+  { t: 'Prepare data', d: '4 input features per sample, scaled to full scale, and a label or a target value.', tool: 'model/apps.py' },
+  { t: 'Train', d: 'The 4 → 6 → 6 → 6 → 6 → 2 network with ReLU hidden layers, in floating point. Pure numpy.', tool: 'model/make_model.py' },
+  { t: 'Quantize', d: 'Weights to int8, biases to int16, one power-of-two shift per layer.', tool: 'model/make_model.py' },
+  { t: 'Verify in software', d: 'Run the integer model against the float model; report accuracy.', tool: 'model/make_model.py' },
+  { t: 'Pack', d: 'Build the 201-byte image and its CRC-16, plus golden test vectors and demo scenarios.', tool: 'models/<name>.json' },
+  { t: 'Load', d: 'Send the image over UART; the chip checks the CRC and swaps it in.', tool: 'host/netsilcon_host.py --load' },
+  { t: 'Verify on the chip', d: 'Run every golden vector through the hardware; each result must match bit for bit.', tool: 'host/netsilcon_host.py --test' },
+];
+---
+<Base title="NetSilcon-Studio" description="NetSilcon-Studio: the open-source toolchain that trains, quantizes, packs and verifies NetSilcon models, and the plan to generate hardware for any network and any FPGA.">
+  <div class="wrap">
+    <header class="pagehd">
+      <div>
+        <span class="crumb">NetSilcon-Studio</span>
+        <h1>From data to a verified model on the chip.</h1>
+        <p class="lede">NetSilcon-Studio is the toolchain. Today it is a set of small Python tools that train a model, turn it into chip numbers, pack the image with its CRC, upload it and prove the hardware gives the same answers. Tomorrow it should build the hardware too.</p>
+      </div>
+      <div class="panel today">
+        <p class="callout" style="margin:0 0 8px">Current release · NetSilcon-Studio 0.1</p>
+        <ul class="ul">
+          <li>Training and int8 quantization <Tag b="M" /></li>
+          <li>Image packing with CRC-16 <Tag b="M" /></li>
+          <li>Host tool: load, infer, test, log <Tag b="M" /></li>
+          <li>Rover simulator and hardware-in-the-loop <Tag b="M" /></li>
+        </ul>
+        <p class="small" style="margin:10px 0 0">Open source, Apache-2.0. Needs Python 3 with numpy, and pyserial for the board.</p>
+      </div>
+    </header>
+
+    <section class="sec" aria-labelledby="flow">
+      <SecHead no="§1 Workflow" title="Seven steps, every one checked." id="flow">Each image is compared bit for bit with the chip's own maths before you trust it.</SecHead>
+      <ol class="steps">
+        {steps.map((s, i) => (
+          <li><span class="n num">{String(i + 1).padStart(2, '0')}</span><div><h3>{s.t}</h3><p class="mut">{s.d}</p><code>{s.tool}</code></div></li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="sec" aria-labelledby="cli">
+      <SecHead no="§2 Command line" title="The tools, as they are in the repository." id="cli">Replace <code>COM7</code> with your board's port (Device Manager → Ports on Windows, <code>/dev/ttyUSB1</code> on Linux).</SecHead>
+      <div class="cli">
+        <div>
+          <h3>Make a model</h3>
+          <p class="mut">Add your job to <code>model/apps.py</code>: input names, units and ranges, output labels, a data generator and demo scenarios. Then train, quantize and pack in one go:</p>
+<pre><code>cd model
+python make_model.py irrigation     # writes models/irrigation.json
+python make_model.py motor_fault    # packages the built-in model</code></pre>
+        </div>
+        <div>
+          <h3>Talk to the chip</h3>
+          <p class="mut">Every run writes a <code>.log</code> and a <code>.csv</code> to <code>host/logs/</code>.</p>
+<pre><code>cd host
+python netsilcon_host.py COM7 --info
+python netsilcon_host.py COM7 --load ../models/irrigation.json --corrupt   # must be REFUSED
+python netsilcon_host.py COM7 --load ../models/irrigation.json
+python netsilcon_host.py COM7 --values 10 24 3500 65
+python netsilcon_host.py COM7 --demo
+python netsilcon_host.py COM7 --test                                       # 576 vectors, bit-exact
+python netsilcon_host.py COM7 --interactive</code></pre>
+        </div>
+        <div>
+          <h3>Drive a rover</h3>
+          <p class="mut">Simulated drives, or let the real FPGA make every decision:</p>
+<pre><code>cd rover_sim
+python rover_sim.py --sensors scanner --unstick         # 20 starts × 4 worlds
+python rover_sim.py --hil COM7 --map clutter --view     # the real FPGA drives
+python rover_sim.py --hil COM7 --noise 0.02             # with ±2 cm sensor noise</code></pre>
+        </div>
+        <div>
+          <h3>Simulate and build the hardware</h3>
+          <p class="mut">No board needed for simulation; you need Icarus Verilog.</p>
+<pre><code>bash scripts/run_all_tests.sh                   # network, UART, model upload
+bash scripts/build_opensource.sh uart           # → build/netsilcon_uart.fs
+openFPGALoader -b tangnano20k build/netsilcon_uart.fs</code></pre>
+        </div>
+      </div>
+      <p class="more"><a href={u('/docs/train-your-own-model/')}>Train your own model, step by step →</a> &nbsp; <a href={repoTree('model')} rel="noopener">model/ on GitHub →</a></p>
+    </section>
+
+    <section class="sec" aria-labelledby="vision">
+      <SecHead no="§3 Vision" title="Any network, any FPGA, and one day a chip." id="vision">These are plans, not features. They are listed so you can see where the project is heading.</SecHead>
+      <div class="cols cols-3 vision">
+        <div><span class="step-no">Planned</span><h3>Train any network</h3><p class="mut">Choose your own shape instead of 4-6-6-6-6-2, and get the same quantize, pack and verify flow.</p></div>
+        <div><span class="step-no">Planned</span><h3>Pick any FPGA, generate the hardware</h3><p class="mut">Studio writes the Verilog for your shape and your board, sized to its multipliers, with the same bit-exact tests.</p></div>
+        <div><span class="step-no">Planned</span><h3>One tool, one window</h3><p class="mut">A single command-line tool and a graphical interface in place of today's separate scripts. Later: a dedicated chip.</p></div>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .today { padding: 18px 20px; }
+  .ul { list-style: none; margin: 0; padding: 0; }
+  .ul li { padding: 7px 0; border-top: 1px solid var(--rule-2); font-size: 16px; display: flex; justify-content: space-between; gap: 12px; }
+  .ul li:first-child { border-top: 0; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .steps li { padding: 16px 14px 18px; border-left: 1px solid var(--rule); display: grid; gap: 10px; align-content: start; }
+  .steps li:first-child { border-left: 0; padding-left: 0; }
+  .steps .n { color: var(--acc); font-size: 13px; }
+  .steps h3 { font-size: 17px; margin-bottom: 6px; }
+  .steps .mut { font-size: 14px; margin: 0 0 10px; }
+  .steps code { font-size: 11px; }
+  .cli { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 40px; }
+  .cli h3 { margin-bottom: 8px; }
+  .cli .mut { font-size: 16px; }
+  .cli pre { font-size: 13px; }
+  .more { margin: 8px 0 0; }
+  .more a { color: var(--acc); font-weight: 600; text-decoration: none; }
+  .vision .step-no { color: var(--tgt); }
+  .vision .mut { font-size: 16px; margin: 8px 0 0; }
+  @media (max-width: 1100px) {
+    .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .steps li:nth-child(5) { border-left: 0; padding-left: 0; }
+    .steps li:nth-child(n+5) { border-top: 1px solid var(--rule); }
+  }
+  @media (max-width: 900px) { .cli { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 640px) {
+    .steps { grid-template-columns: minmax(0, 1fr); }
+    .steps li { grid-template-columns: 2.4em minmax(0, 1fr); border-left: 0; padding: 14px 0; border-top: 1px solid var(--rule); }
+    .steps li:first-child { border-top: 0; }
+  }
+</style>

@@ -1,0 +1,20 @@
+---
+title: "My neural network was right, and my robot still got stuck"
+description: "Three lessons from putting a 170-parameter network in charge of a simulated rover."
+date: 2026-11-21
+order: 2
+---
+
+I trained a tiny network, 170 numbers, to drive a rover: 4 LiDAR distances in, speed and steering out. On paper it matched its rules 95 % of the time. Then I put it in a simulator and let it drive.
+
+In 80 drives, it got stuck in 70 and crashed in 8. Three lessons:
+
+1. **Sudden jumps are hard to learn.** My first rules flipped straight from forward to reverse. A 6-neuron layer can't draw a sharp step, so it blurred it (78 % agreement). Rewritten as smooth ramps: 95 %. The robot also drives more smoothly.
+2. **Thin beams leave blind spots.** Four single-beam LiDARs at the corners missed a pillar straight ahead. One 360° scanner, reduced to 4 corner sectors, brought crashes to zero.
+3. **A network with no memory can't escape a dead end.** It slows to a stop at a wall, and a car-like robot can't turn while stopped. A small fixed-logic supervisor now does a 3-point turn when there is no progress.
+
+Then I retrained it on the situations the robot actually met while driving, not just random ones. With a predictive safety stop added, the result was **0 crashes and 0 stuck runs in 80 drives**.
+
+The network copies its rules less exactly now (91.5 %), but it drives far better. Accuracy on paper is not behaviour. Test the closed loop.
+
+The full table of setups is in the [rover simulator docs](/docs/rover-simulator/), and you can drive it yourself in the [playground](/playground/#rover).

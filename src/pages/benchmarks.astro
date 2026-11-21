@@ -1,0 +1,103 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import BenchTable from '../components/BenchTable.astro';
+import Tag from '../components/Tag.astro';
+import { repo, repoTree } from '../config';
+const sources = [
+  { t: 'Gowin power analysis summary of the routed design', h: repo('docs/logs/gowin_power_summary.txt'), who: 'repository' },
+  { t: 'STM32F407 datasheet, Table 20', h: 'https://www.st.com/resource/zh/datasheet/stm32f407vg.pdf', who: 'ST' },
+  { t: 'Intel Core i7-13650HX specifications', h: 'https://www.intel.com/content/www/us/en/products/sku/232101/x/specifications.html', who: 'Intel' },
+  { t: 'CUDA Graphs introduction: launch overheads', h: 'https://docs.nvidia.com/dl-cuda-graph/cuda-graph-basics/introduction.html', who: 'NVIDIA' },
+  { t: 'JetPack 6.2 Super Mode for Jetson Orin Nano', h: 'https://developer.nvidia.com/blog/nvidia-jetpack-6-2-brings-super-mode-to-nvidia-jetson-orin-nano-and-jetson-orin-nx-modules', who: 'NVIDIA' },
+  { t: 'Coral USB Accelerator datasheet', h: 'https://coral.ai/static/files/Coral-USB-Accelerator-datasheet.pdf', who: 'Google' },
+  { t: 'Exploring Edge TPU for Network Intrusion Detection in IoT (arXiv:2103.16295)', h: 'https://arxiv.org/pdf/2103.16295', who: 'arXiv' },
+];
+---
+<Base title="Benchmarks" description="NetSilcon-6x4 against a Cortex-M4, a laptop CPU, an edge GPU and an edge NPU on the same bit-exact int8 network, with the method and source for every number.">
+  <div class="wrap">
+    <header class="pagehd">
+      <div>
+        <span class="crumb">Benchmarks</span>
+        <h1>The same network on five kinds of hardware.</h1>
+        <p class="lede">One network: the motor-fault model, 170 int8 parameters, 201 bytes. Every platform computes the same bit-exact int8 math, one inference at a time, which is how a sensor-side decision is made.</p>
+      </div>
+      <div class="cols cols-3 heads">
+        <div><div class="big num">≈ 25×</div><div class="small">faster than the Cortex-M4</div></div>
+        <div><div class="big num">24–36×</div><div class="small">less energy than the Cortex-M4</div></div>
+        <div><div class="big num">5×</div><div class="small">slower than a laptop core, at this size</div></div>
+      </div>
+    </header>
+
+    <section class="sec" aria-labelledby="table">
+      <SecHead no="§1 Results" title="Latency, power and energy per inference." id="table">“Measured” means run on real hardware here. “Estimate” means derived from a datasheet or published figures, with the method below.</SecHead>
+      <BenchTable full />
+    </section>
+
+    <section class="sec" aria-labelledby="read">
+      <SecHead no="§2 What it shows" title="Reading the table honestly." id="read" />
+      <div class="cols cols-3">
+        <div><h3>Energy</h3><p class="mut">NetSilcon gives the same answer for about 24–36× less energy than a microcontroller, and 15–82× less than a laptop CPU, in a part small enough to sit next to the microcontroller.</p></div>
+        <div><h3>Speed</h3><p class="mut">At this tiny size a laptop CPU is about 5× faster than NetSilcon at 27 MHz. It also draws tens of watts and needs an operating system. NetSilcon is about 25–38× faster than the microcontroller that would normally be in the device.</p></div>
+        <div><h3>Determinism</h3><p class="mut">NetSilcon took exactly 15 clocks on every one of the 9,600 hardware-in-the-loop decisions. Caches, interrupts and an operating system add jitter on a CPU or microcontroller.</p></div>
+      </div>
+      <div class="note" style="margin-top:24px"><p><b>GPUs and NPUs are built for big models.</b> For a 200-byte network, the cost of starting the accelerator and moving data to it is far larger than the maths itself.</p></div>
+      <div class="note tgt"><p><b>Where a dedicated chip would start from.</b> Gowin estimates the network logic alone at 10.6 mW while producing 13.5 million inferences per second, about 0.8 nJ per inference. Most of the FPGA's 139.5 mW is static power that a dedicated chip would not carry. This is a tool estimate, not a measurement of a chip. <Tag b="E" /></p></div>
+    </section>
+
+    <section class="sec" aria-labelledby="method">
+      <SecHead no="§3 Method" title="How each number was obtained." id="method" />
+      <div class="method">
+        <article>
+          <h3>NetSilcon-6x4 <Tag b="M" /> <Tag b="E" /></h3>
+          <p><b>Latency, measured.</b> The FPGA counts clocks from the last input byte to the answer and reports 15 on every inference. <b>Power, estimated.</b> Gowin EDA V1.9.11.03 power analysis of the routed design (default toggle rate 12.5 %, 25 °C): 139.5 mW total, of which 122.8 mW static and 16.7 mW dynamic. Energy = 139.5 mW × 0.556 µs ≈ 78 nJ.</p>
+        </article>
+        <article>
+          <h3>STM32F407, Cortex-M4 <Tag b="E" /></h3>
+          <p>The same C code compiled for Cortex-M4 at -O2 and run in the Unicorn emulator: 576 / 576 vectors bit-exact, <span class="num">2,327</span> instructions per inference. At 1.0–1.5 cycles per instruction that is 2,300–3,500 cycles, or 14–21 µs at 168 MHz. ST's CMSIS-NN library could be faster. Power from the ST datasheet, run mode at 168 MHz from flash, peripherals off: 40 mA at 3.3 V = 132 mW.</p>
+        </article>
+        <article>
+          <h3>Laptop, Intel Core i7-13650HX <Tag b="M" /> <Tag b="E" /></h3>
+          <p><code>bench_cpu.c</code> built with <code>gcc -O2 -march=native</code>, one thread, best of 5 × 20 million inferences, inside a Linux VM on Windows 11: <span class="num">115.4 ns</span>, 576 / 576 bit-exact. Power not measured: Intel lists 55 W base power for the whole processor; a single busy core draws less, so 10–55 W is used.</p>
+        </article>
+        <article>
+          <h3>Edge GPU, Jetson Orin Nano <Tag b="E" /></h3>
+          <p>Not measured. NVIDIA's CUDA Graphs documentation lists the cost of launching GPU work: runtime 5–20 µs, driver 5–15 µs, hardware submission 1–5 µs, plus 10–100 µs from Python. For this network those costs and the data copies dominate, so ≥ 20 µs per call is conservative. Power modes 7 W and 15 W (25 W in Super mode). Energy ≥ 7 W × 20 µs.</p>
+        </article>
+        <article>
+          <h3>Edge NPU, Coral USB Accelerator <Tag b="E" /></h3>
+          <p>Not measured. The datasheet gives 4 TOPS at 2 W over USB. A published evaluation found a Cortex-A53 CPU faster and more energy-efficient than the Edge TPU for feed-forward models up to 136 KiB. This network is 0.2 KiB.</p>
+        </article>
+        <article>
+          <h3>Reproduce it</h3>
+          <p>The benchmark code is in <a href={repoTree('bench')} rel="noopener"><code>bench/</code></a>: <code>net.h</code> is the same network in plain C with weights from <code>models/motor_fault.json</code>. The STM32 figure will be replaced by a measurement on real hardware; that is next on the <a href={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/roadmap/`}>roadmap</a>.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="sources">
+      <SecHead no="§4 Sources" title="Sources." id="sources" />
+      <ol class="srcs">
+        {sources.map((s) => <li><a href={s.h} rel="noopener">{s.t}</a> <span class="small">· {s.who}</span></li>)}
+      </ol>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .heads > * { padding: 14px 16px 16px; }
+  .heads .big { font-size: clamp(24px, 2.6vw, 32px); font-weight: 500; letter-spacing: -0.02em; }
+  .cols .mut { font-size: 16px; margin: 8px 0 0; }
+  .method { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--ink); }
+  .method article { padding: 20px 24px 20px 0; border-bottom: 1px solid var(--rule); }
+  .method article:nth-child(even) { padding: 20px 0 20px 24px; border-left: 1px solid var(--rule); }
+  .method h3 { margin-bottom: 10px; }
+  .method p { font-size: 16px; color: var(--mut); margin: 0; }
+  .method p b { color: var(--ink); font-weight: 600; }
+  .srcs { margin: 0; padding-left: 1.4em; font-size: 16px; }
+  .srcs li { padding: 6px 0; border-bottom: 1px solid var(--rule-2); }
+  @media (max-width: 800px) {
+    .method { grid-template-columns: minmax(0, 1fr); }
+    .method article, .method article:nth-child(even) { padding: 18px 0; border-left: 0; }
+  }
+</style>

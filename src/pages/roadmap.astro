@@ -1,0 +1,65 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import { roadmap } from '../data/facts';
+const detail: Record<string, string> = {
+  'SPI interface beside UART': 'So NetSilcon can sit on a PCB as a companion IC to an MCU, for example an ESC fault check.',
+  'Model storage in flash, loaded at power-up': 'Today an uploaded model lives in registers and the built-in model comes back at power-off.',
+  'Real sensors instead of simulation': 'The rover results so far come from simulation and hardware-in-the-loop, not real LiDAR.',
+  'STM32 benchmark on real hardware': 'Replace the counted-instructions estimate with a measurement, including CMSIS-NN.',
+  'NetSilcon-64x6: 16 → 64×6 → 16, in design': 'A larger engine with weights streamed from block RAM, prototyped on the same Tang Nano 20K.',
+  'The full NetSilcon-Studio toolchain': 'Train any network, pick any FPGA, generate the hardware.',
+  'A chip on a shared multi-project wafer (MPW)': 'The long-term goal: a real NetSilcon die.',
+};
+---
+<Base title="Roadmap" description="NetSilcon roadmap: what is done on the FPGA, what comes next, and the path to a chip.">
+  <div class="wrap">
+    <header class="pagehd">
+      <div>
+        <span class="crumb">Roadmap</span>
+        <h1>From one FPGA board to a chip.</h1>
+        <p class="lede">What is finished, what is being worked on now, and what comes after. Only the first column is real today.</p>
+      </div>
+    </header>
+    <section class="sec" aria-label="Roadmap">
+      <ol class="tl">
+        {roadmap.map((r) => (
+          <li class={r.state}>
+            <div class="ph"><span class="dot" aria-hidden="true"></span><h2>{r.phase}</h2></div>
+            <ul>{r.items.map((i) => <li><b>{i}</b>{detail[i] && <span class="mut">{detail[i]}</span>}</li>)}</ul>
+          </li>
+        ))}
+      </ol>
+    </section>
+    <section class="sec" aria-labelledby="limits">
+      <SecHead no="Known limits" title="What the prototype does not do yet." id="limits" />
+      <ul class="lim">
+        <li>Not tested with real sensors yet. Real LiDAR noise, reflections and motor behaviour are still untested.</li>
+        <li>Uploaded models live in registers. At power-off the built-in model comes back.</li>
+        <li>The rover's safety stop and supervisor run on the PC in the simulator for now. They are designed to move into the FPGA.</li>
+        <li>The network is deliberately small, 170 parameters. It suits sensor-level decisions, not vision or language.</li>
+      </ul>
+    </section>
+  </div>
+</Base>
+<style>
+  .tl { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 2px solid var(--ink); }
+  .tl > li { padding: 0 24px 0 0; position: relative; }
+  .tl > li + li { padding-left: 24px; border-left: 1px solid var(--rule); }
+  .ph { display: flex; align-items: center; gap: 10px; padding: 16px 0 12px; }
+  .ph h2 { font-size: 24px; }
+  .dot { width: 12px; height: 12px; border: 2px solid var(--acc); background: var(--acc); flex: none; }
+  .next .dot, .later .dot { background: var(--tgt-bg); border: 2px dashed var(--tgt-line); }
+  .next h2, .later h2 { color: var(--tgt); }
+  .tl ul { list-style: none; margin: 0; padding: 0; }
+  .tl ul li { padding: 12px 0; border-top: 1px solid var(--rule-2); display: grid; gap: 4px; }
+  .tl ul b { font-weight: 600; font-size: 16px; }
+  .tl ul .mut { font-size: 15px; }
+  .lim { margin: 0; padding-left: 1.2em; max-width: 72ch; }
+  .lim li { padding: 6px 0; }
+  @media (max-width: 860px) {
+    .tl { grid-template-columns: minmax(0, 1fr); }
+    .tl > li, .tl > li + li { padding: 0; border-left: 0; }
+    .tl > li + li { border-top: 1px solid var(--ink); margin-top: 16px; }
+  }
+</style>

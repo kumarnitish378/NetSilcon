@@ -1,0 +1,116 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import Pinout from '../components/Pinout.astro';
+import BlockDiagram from '../components/BlockDiagram.astro';
+import Tag from '../components/Tag.astro';
+import { specGroups, pins, ordering, STATUS_NOTE } from '../data/facts';
+import { SITE } from '../config';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const typeName: Record<string, string> = { P: 'power', G: 'ground', I: 'input', O: 'output', OD: 'open-drain', A: 'analog', '–': '–' };
+---
+<Base title="NetSilcon-6x4" description="NetSilcon-6x4 (NS6X4-Q24): a neural-network decision engine with a fixed 4-6-6-6-6-2 shape and a loadable 201-byte model. Specifications with measured, estimated and target labels.">
+  <div class="wrap">
+    <div class="docline"><span>NS6X4-Q24 · Rev 0.1 · preliminary</span><span>every value carries a basis: <Tag b="M" /> measured <Tag b="E" /> estimated <Tag b="T" /> target</span></div>
+    <header class="pagehd">
+      <div>
+        <span class="crumb">Product · NetSilcon-6x4</span>
+        <h1>NetSilcon-6x4</h1>
+        <p class="lede">A companion IC that sits next to a microcontroller and makes one small neural-network decision in 15 clock cycles. The shape is fixed: 4 → 6 → 6 → 6 → 6 → 2. The 201-byte model is yours to load.</p>
+        <div class="btns" style="margin-top:24px">
+          <a class="btn pri" href={u('/files/NetSilcon-6x4_Datasheet.pdf')} download>Download the datasheet (PDF, 22 pages)</a>
+          <a class="btn" href={u('/docs/getting-started/')}>Run it on a Tang Nano 20K</a>
+        </div>
+      </div>
+      <div class="panel statusbox">
+        <div class="row"><span class="callout">FPGA reference</span><span class="status Available">Available</span></div>
+        <p class="small">Working today on the Sipeed Tang Nano 20K. Open source.</p>
+        <div class="row"><span class="callout">Evaluation board</span><span class="status Planned">Planned</span></div>
+        <div class="row"><span class="callout">QFN-24 silicon</span><span class="status Preview">Preview</span></div>
+        <p class="small" style="margin:0">Silicon is a design target. Nothing here has been fabricated yet.</p>
+      </div>
+    </header>
+
+    <section class="sec" aria-labelledby="specs">
+      <SecHead no="§1 Specifications" title="Key specifications." id="specs">Measured values come from the FPGA reference at 27 MHz. Targets are what the production chip is designed for, and may change.</SecHead>
+      <div class="specs">
+        {specGroups.map((g) => (
+          <div class="tbl-wrap">
+            <table>
+              <caption>{g.title}</caption>
+              <tbody>
+                {g.rows.map((r) => (
+                  <tr class={r.basis === 'T' ? 't' : ''}><th scope="row">{r.k}</th><td>{r.v}</td><td class="b"><Tag b={r.basis} /></td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="block">
+      <SecHead no="§2 Block diagram" title="What is inside." id="block">The host talks over UART today. Infer commands go straight to the neural engine; load commands go through the CRC-checked staging buffer.</SecHead>
+      <figure class="fig blockfig"><div class="scrollx"><BlockDiagram /></div><figcaption><span>Fig. 2 · Simplified block diagram</span><span>see datasheet Section 7</span></figcaption></figure>
+    </section>
+
+    <section class="sec" aria-labelledby="pins">
+      <SecHead no="§3 Pinout" title="QFN-24, 4 × 4 mm, top view." id="pins">The package and pinout are design targets <Tag b="T" />. On the FPGA reference, the same functions sit on the Tang Nano 20K's pins: UART over the USB-C port, decision on an LED.</SecHead>
+      <div class="pinwrap">
+        <figure class="fig"><Pinout /><figcaption><span>Fig. 3 · NS6X4-Q24 pin configuration</span><span>pin 1 top-left, anticlockwise · EP = GND</span></figcaption></figure>
+        <div class="tbl-wrap pintbl">
+          <table>
+            <thead><tr><th class="r">Pin</th><th>Name</th><th>Type</th><th>Function</th></tr></thead>
+            <tbody>
+              {pins.map((p) => (
+                <tr class={['nREADY', 'nFAULT', 'DOUT0'].includes(p.name) ? 'us' : ''}><td class="r num">{p.n}</td><td class="num nw"><b>{p.name}</b></td><td class="small">{typeName[p.type]}</td><td class="small">{p.desc}</td></tr>
+              ))}
+              <tr><td class="r num">EP</td><td class="num"><b>GND</b></td><td class="small">ground</td><td class="small">Exposed pad, solder to the ground plane</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="cols cols-3 keypins">
+        <div><span class="step-no">nREADY · pin 15</span><p class="mut">Goes low when a result can be read. Wire it to an MCU interrupt instead of polling.</p></div>
+        <div><span class="step-no">nFAULT · pin 16</span><p class="mut">Open-drain, active low: CRC error, frame error, flash error or watchdog reset.</p></div>
+        <div><span class="step-no">DOUT0 · pin 17</span><p class="mut">The decision bit, 1 when y1 &gt; y0. It can switch off a gate driver directly, without waiting for the MCU.</p></div>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="order">
+      <SecHead no="§4 Ordering" title="Ordering and availability." id="order">{STATUS_NOTE}</SecHead>
+      <div class="tbl-wrap">
+        <table class="stack">
+          <thead><tr><th>Part number</th><th>Description</th><th>Package</th><th>Status</th></tr></thead>
+          <tbody>
+            {ordering.map((o) => (
+              <tr><td data-l="Part" class="num nw"><b>{o.part}</b></td><td data-l="Description">{o.what}</td><td data-l="Package" class="small nw">{o.pack}</td><td data-l="Status"><span class={`status ${o.status}`}>{o.status}</span></td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:12px">The FPGA reference is on <a href={SITE.githubUrl} rel="noopener">GitHub</a>. For silicon samples, there is nothing to order yet; <a href={u('/about/#contact')}>get in touch</a> to follow progress.</p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .statusbox { padding: 18px 20px; display: grid; gap: 8px; }
+  .statusbox .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--rule-2); padding-top: 10px; }
+  .statusbox .row:first-child { border-top: 0; padding-top: 0; }
+  .statusbox .small { margin: 0 0 4px; }
+  .specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .specs caption { text-align: left; font: 700 16px var(--head); padding: 12px 14px 10px; border-bottom: 1px solid var(--ink); }
+  .specs th { font: 400 14px var(--sans); color: var(--mut); white-space: normal; border-bottom: 1px solid var(--rule-2); width: 40%; vertical-align: top; padding-top: 11px; }
+  .specs td { font-size: 15px; }
+  .specs td.b { width: 1%; text-align: right; }
+  .specs tr.t td:not(.b) { color: var(--tgt); }
+  .scrollx { overflow-x: auto; }
+  .scrollx :global(svg) { min-width: 620px; }
+  .pinwrap { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+  .pintbl td, .pintbl th { padding: 7px 12px; }
+  .keypins { margin-top: 24px; }
+  .keypins .mut { font-size: 16px; margin: 0; }
+  @media (max-width: 960px) { .specs, .pinwrap { grid-template-columns: minmax(0, 1fr); } }
+</style>
