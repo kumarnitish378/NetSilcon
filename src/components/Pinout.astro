@@ -11,7 +11,7 @@ const geo = pins.map((p) => {
   const x = B1 - 35 - i * step; return { ...p, px: x - 5, py: B0 - 14, pw: 10, ph: 14, tx: x + 4, ty: B0 - 22, anchor: 'start', nx: x + 4, ny: B0 + 10, na: 'end', rot: -90 };
 });
 ---
-<svg class="pinout" viewBox="0 0 560 560" role="img" aria-label="NS6X4-Q24 pinout, QFN-24 top view. Left side pins 1 to 6: VDD, VCORE, GND, CLKIN, CLKOUT, nRESET. Bottom pins 7 to 12: IFSEL, UART_RX, UART_TX, VDDIO, SPI_nCS, SPI_SCK. Right side pins 13 to 18 from bottom: SPI_MOSI, SPI_MISO, nREADY, nFAULT, DOUT0, DOUT1. Top pins 19 to 24 from right: START, nWP, GND, STATUS, TEST, NC. Exposed pad is GND.">
+<svg class="pinout" viewBox="78 78 404 404" role="img" aria-label="NS6X4-Q24 pinout, QFN-24 top view. Left side pins 1 to 6: VDD, VCORE, GND, CLKIN, CLKOUT, nRESET. Bottom pins 7 to 12: IFSEL, UART_RX, UART_TX, VDDIO, SPI_nCS, SPI_SCK. Right side pins 13 to 18 from bottom: SPI_MOSI, SPI_MISO, nREADY, nFAULT, DOUT0, DOUT1. Top pins 19 to 24 from right: START, nWP, GND, STATUS, TEST, NC. Exposed pad is GND.">
   <rect class="body" x={B0} y={B0} width={B1 - B0} height={B1 - B0} />
   <rect class="ep" x={B0 + 55} y={B0 + 55} width={B1 - B0 - 110} height={B1 - B0 - 110} />
   <circle class="dotp" cx={B0 + 16} cy={B0 + 16} r="5" />
@@ -31,7 +31,7 @@ const geo = pins.map((p) => {
   ))}
 </svg>
 <style>
-  .pinout { display: block; width: 100%; height: auto; max-width: 560px; margin: 0 auto; }
+  .pinout { display: block; width: 100%; height: auto; max-width: 520px; margin: 0 auto; }
   .body { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
   .ep { fill: none; stroke: var(--rule); stroke-dasharray: 4 3; }
   .dotp { fill: var(--ink); }

@@ -4,8 +4,8 @@ const boxes = [
   { x: 20, y: 40, w: 160, h: 96, t: 'Host interface', l: ['UART 115200 8N1', 'SPI mode 0 (T)'] },
   { x: 214, y: 40, w: 160, h: 96, t: 'Command decoder', l: ['A5 infer', 'C3 load · C5 info'] },
   { x: 408, y: 40, w: 186, h: 96, t: 'Neural engine', l: ['4→6→6→6→6→2', '72 mult · 15 cycles'], acc: true },
-  { x: 628, y: 40, w: 132, h: 96, t: 'Output logic', l: ['DOUT0 decision', 'nREADY · nFAULT'] },
-  { x: 214, y: 200, w: 160, h: 96, t: 'Model loader', l: ['staging 201 B', 'CRC-16 · atomic swap'] },
+  { x: 628, y: 40, w: 132, h: 96, t: 'Output logic', l: ['decision bit', 'DOUT0 pins (T)'] },
+  { x: 214, y: 200, w: 160, h: 96, t: 'Model loader', l: ['staging 201 B', 'CRC · atomic swap'] },
   { x: 408, y: 200, w: 186, h: 96, t: 'Model registers', l: ['144 w · 26 b', '5 shifts'] },
   { x: 20, y: 200, w: 160, h: 96, t: 'Model flash', l: ['load at power-up', 'with CRC check'], tgt: true },
 ];
