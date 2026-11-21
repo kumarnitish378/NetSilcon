@@ -1,0 +1,206 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import NetDiagram from '../components/NetDiagram.astro';
+import Waveform from '../components/Waveform.astro';
+import Tag from '../components/Tag.astro';
+import { SITE } from '../config';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const pageUrl = new URL(u('/neural-network-on-fpga/'), Astro.site).toString();
+
+const title = 'Neural network on FPGA: how it works, step by step';
+const description = 'How to run a neural network on an FPGA: int8 quantization, DSP multipliers, pipelining and weight loading, with a measured Verilog example on a Tang Nano 20K.';
+
+const faq = [
+  { q: 'Can you run a neural network on an FPGA?', a: 'Yes. Each neuron is a set of multiplications and additions, which an FPGA can do in parallel with its DSP blocks and logic. NetSilcon-6x4 runs a 4 → 6 → 6 → 6 → 6 → 2 int8 network on a Gowin GW2AR-18 FPGA and answers in 15 clock cycles (0.556 µs at 27 MHz), measured on the board.' },
+  { q: 'Is an FPGA faster than a CPU for neural networks?', a: 'It depends on the size of the network and what you compare with. For one small network, a desktop or laptop CPU core can still be faster: on the same 170-parameter network a laptop core took 0.115 µs against NetSilcon\'s 0.556 µs. The FPGA wins on energy per inference, on fixed latency with no jitter, and against the microcontroller that would otherwise sit in the device (about 25× faster than a Cortex-M4 here).' },
+  { q: 'Which FPGA do I need for a small neural network?', a: 'Small networks fit low-cost FPGAs. NetSilcon-6x4 uses 49 % of the logic, 24 of 24 DSP blocks and one block RAM of a Gowin GW2AR-18 on a Sipeed Tang Nano 20K board. The limiting resource is usually the number of hardware multipliers.' },
+  { q: 'Do I need floating point on the FPGA?', a: 'No. Most FPGA neural networks use integers. Train in floating point, then quantize to int8 weights, wider integer biases and a scaling shift per layer. If the hardware and a software model use exactly the same integer maths, you can check the FPGA bit for bit.' },
+  { q: 'Verilog or HLS for a neural network on FPGA?', a: 'Both work. High-level synthesis tools turn C++ or Python models into hardware and are quick for exploring larger networks. Hand-written Verilog gives exact control over every multiplier and clock cycle, which suits a small, fixed network that must meet a tight latency. NetSilcon is written in Verilog.' },
+  { q: 'Can I change the neural network after the FPGA is programmed?', a: 'You can change the weights without re-synthesis if the design keeps them in writable registers or memory. NetSilcon loads a new 201-byte model over UART in about 31 ms, checks its CRC-16 and swaps it in within 7.4 µs. Changing the network shape needs a new bitstream.' },
+];
+
+const jsonld = [
+  {
+    '@type': 'TechArticle',
+    headline: title,
+    description,
+    url: pageUrl,
+    mainEntityOfPage: pageUrl,
+    image: new URL(u('/og.png'), Astro.site).toString(),
+    author: { '@type': 'Person', name: SITE.author },
+    datePublished: '2026-11-21',
+    dateModified: '2026-11-21',
+    inLanguage: 'en',
+    about: ['Neural network', 'FPGA', 'int8 quantization', 'Verilog'],
+  },
+  {
+    '@type': 'FAQPage',
+    mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  },
+];
+---
+<Base fullTitle="Neural network on FPGA: how it works, step by step · NetSilcon" description={description} ogType="article" jsonld={jsonld} crumbs={[{ name: 'Neural network on FPGA', path: '/neural-network-on-fpga/' }]}>
+  <div class="wrap">
+    <header class="pagehd">
+      <div>
+        <span class="crumb">Guide · updated 21 November 2026 · by {SITE.author}</span>
+        <h1>Neural network on FPGA: how it works, step by step.</h1>
+        <p class="lede">A neural network on an FPGA is a network whose maths is built directly into the chip's logic, so every neuron of a layer computes at the same time instead of one instruction after another. This guide explains how that works, using a real design that runs today: NetSilcon-6x4, an open-source int8 network in Verilog on a Tang Nano 20K board.</p>
+      </div>
+      <nav class="toc" aria-label="On this page">
+        <a href="#what">1 · What it means</a><a href="#why">2 · Why use an FPGA</a><a href="#blocks">3 · The building blocks</a><a href="#fit">4 · Fitting a small FPGA</a><a href="#flow">5 · The design flow</a><a href="#numbers">6 · Real numbers</a><a href="#faq">7 · FAQ</a>
+      </nav>
+    </header>
+
+    <section class="sec" aria-labelledby="what">
+      <SecHead no="§1" title="What “a neural network on an FPGA” means." id="what" />
+      <div class="two">
+        <div class="prose">
+          <p>A neural network is a stack of layers. Each neuron multiplies its inputs by weights, adds them up with a bias, and passes the result through a simple function such as ReLU. Software runs this on a processor, one multiply-add at a time.</p>
+          <p>An FPGA (field-programmable gate array) is a chip full of small logic blocks, hardware multipliers called DSP blocks, and memory, all wired together by a configuration file called a <b>bitstream</b>. Put a neural network on an FPGA and each neuron becomes its own small circuit. All neurons of a layer work at once, and data flows from layer to layer like water through pipes.</p>
+          <p>Think of a kitchen. A CPU is one very fast cook making every dish in turn. An FPGA neural network is a row of cooks, one per dish, each doing only their own job, all at the same time.</p>
+        </div>
+        <figure class="fig"><NetDiagram label="A neural network on an FPGA: the NetSilcon-6x4 network with 4 inputs, four hidden layers of 6 neurons and 2 outputs, fully connected by 144 int8 weights. Signal pulses flow from inputs to outputs." /><figcaption><span>NetSilcon-6x4 · 26 neurons · 144 weights</span><span>runs on a Gowin GW2AR-18</span></figcaption></figure>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="why">
+      <SecHead no="§2" title="Why run a neural network on an FPGA?" id="why">Not for speed alone. For small networks next to a sensor, the reasons are energy, fixed timing and independence from a processor.</SecHead>
+      <div class="tbl-wrap">
+        <table class="stack">
+          <thead><tr><th>Option</th><th>Good at</th><th>Weak at</th><th>Same network, measured or estimated</th></tr></thead>
+          <tbody>
+            <tr><td data-l="Option"><b>Microcontroller</b></td><td data-l="Good at">cheap, already in the device</td><td data-l="Weak at">thousands of instructions per inference</td><td data-l="Numbers" class="num"><span>14–21 µs, 1.8–2.8 µJ <Tag b="E" /></span></td></tr>
+            <tr><td data-l="Option"><b>Laptop / desktop CPU</b></td><td data-l="Good at">raw speed on small models</td><td data-l="Weak at">tens of watts, an operating system, jitter</td><td data-l="Numbers" class="num"><span>0.115 µs <Tag b="M" />, 1.2–6.4 µJ <Tag b="E" /></span></td></tr>
+            <tr><td data-l="Option"><b>Edge GPU / NPU</b></td><td data-l="Good at">large models, high throughput</td><td data-l="Weak at">launch and data-copy overhead dwarfs a tiny network</td><td data-l="Numbers" class="num"><span>≥ 20 µs, ≥ 140 µJ (GPU) <Tag b="E" /></span></td></tr>
+            <tr class="us"><td data-l="Option"><b>Neural network on FPGA</b></td><td data-l="Good at">parallel, fixed latency, low energy per inference</td><td data-l="Weak at">limited multipliers and memory; hardware design effort</td><td data-l="Numbers" class="num"><span>0.556 µs <Tag b="M" />, ≈ 78 nJ <Tag b="E" /></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">Same bit-exact int8 network on every platform, batch 1. Method and sources on the <a href={u('/benchmarks/')}>benchmarks page</a>. M = measured, E = estimate.</p>
+    </section>
+
+    <section class="sec" aria-labelledby="blocks">
+      <SecHead no="§3" title="The building blocks of an FPGA neural network." id="blocks">Six design decisions turn a trained model into hardware. Each one is shown with the choice NetSilcon made.</SecHead>
+      <ol class="blocks">
+        <li><h3>1 · Integer number format</h3><p class="mut">Floating point is expensive in FPGA logic, so the trained network is <b>quantized</b>: weights to int8, biases to int16, inputs scaled to 0…127. The motor-fault model scores 94.5 % accuracy in int8.</p></li>
+        <li><h3>2 · Multiply-accumulate (MAC)</h3><p class="mut">Every weight needs a multiplier. FPGAs have dedicated DSP blocks for this. The products of a neuron are added in a tree, together with the bias.</p></li>
+        <li><h3>3 · Accumulator width</h3><p class="mut">Make the sum wide enough that it can never overflow. With int8 × int8 products, six inputs and an int16 bias, the worst case is 129,541, which fits a 20-bit signed accumulator.</p></li>
+        <li><h3>4 · Activation and rescaling</h3><p class="mut">ReLU is a check of the sign bit. Then the sum is rounded and shifted right by a per-layer power of two, and clamped back to 8 bits for the next layer. No divider needed.</p></li>
+        <li><h3>5 · Pipelining</h3><p class="mut">Registers between stages keep each clock path short so the design meets timing. NetSilcon uses 3 clocks per layer, so 5 layers take 15 clocks, and a new input can enter every 2 clocks.</p></li>
+        <li><h3>6 · Where the weights live</h3><p class="mut">Weights fixed as constants are smallest, but then the FPGA does only one job. Keeping them in writable registers costs more logic and lets you load a new model at run time. NetSilcon does the latter, with a CRC-checked swap.</p></li>
+      </ol>
+    </section>
+
+    <section class="sec" aria-labelledby="fit">
+      <SecHead no="§4" title="Fitting a neural network into a small FPGA." id="fit">The hardware multipliers usually run out first. Here is how NetSilcon fits a 144-weight network into a board with room for 96.</SecHead>
+      <div class="two">
+        <div class="prose">
+          <p><b>Time-sharing multipliers.</b> A fully parallel version needs 144 multipliers, one per weight. The GW2AR-18 has 96. So each neuron gets half the multipliers it needs and uses them on two clocks in a row. That needs 72 multipliers, and gives one result every 2 clocks instead of every clock. Both versions give bit-identical results.</p>
+          <p><b>The cost of programmability.</b> When the weights were constants, synthesis folded them into the logic and the design used 21 % of the FPGA. With weights, biases and shifts writable at run time, it uses 49 %. That difference is the real price of “one FPGA, many jobs”.</p>
+          <p><b>Timing.</b> Separating the multiply-add from the variable shifter with an extra register lets the design reach 29.1 MHz in Gowin EDA, above the 27 MHz board clock.</p>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <caption class="cap">Resource use on a GW2AR-18 (Gowin EDA) <Tag b="M" /></caption>
+            <thead><tr><th>Resource</th><th class="r">Used</th><th class="r">Available</th><th class="r">Share</th></tr></thead>
+            <tbody>
+              <tr><td>Logic (LUT + ALU)</td><td class="r num">9,991</td><td class="r num">20,736</td><td class="r num">49 %</td></tr>
+              <tr><td>Registers</td><td class="r num">3,319</td><td class="r num">15,750</td><td class="r num">22 %</td></tr>
+              <tr><td>DSP blocks</td><td class="r num">24</td><td class="r num">24</td><td class="r num">100 %</td></tr>
+              <tr><td>Block RAM</td><td class="r num">1</td><td class="r num">46</td><td class="r num">3 %</td></tr>
+              <tr><td>Max frequency</td><td class="r num" colspan="2">29.1 MHz vs 27 MHz needed</td><td class="r">PASS</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="flow">
+      <SecHead no="§5" title="Design flow: from a trained model to a working FPGA." id="flow">The order matters. Prove the integer maths in software first, and the hardware has something exact to match.</SecHead>
+      <ol class="steps">
+        <li><span class="n num">01</span><div><h3>Train in floating point</h3><p class="mut">Any framework, or plain numpy as NetSilcon does.</p></div></li>
+        <li><span class="n num">02</span><div><h3>Quantize and write a bit-exact model</h3><p class="mut">An integer Python model that does exactly what the hardware will do, down to rounding.</p></div></li>
+        <li><span class="n num">03</span><div><h3>Write the hardware</h3><p class="mut">Verilog (or HLS) for one layer, then stack the layers with a fixed shape.</p></div></li>
+        <li><span class="n num">04</span><div><h3>Simulate against golden vectors</h3><p class="mut">Icarus Verilog testbenches compare every output with the Python model: 576 / 576.</p></div></li>
+        <li><span class="n num">05</span><div><h3>Synthesize and check timing</h3><p class="mut">Gowin EDA, or the open-source yosys and nextpnr flow.</p></div></li>
+        <li><span class="n num">06</span><div><h3>Test on the board</h3><p class="mut">Send inputs over UART, log every answer, compare bit for bit.</p></div></li>
+        <li><span class="n num">07</span><div><h3>Test in the loop</h3><p class="mut">Let the FPGA drive a simulated system: 9,600 rover decisions, 0 mismatches.</p></div></li>
+      </ol>
+      <p class="more"><a href={u('/docs/getting-started/')}>Run this neural network on your own Tang Nano 20K →</a></p>
+    </section>
+
+    <section class="sec" aria-labelledby="numbers">
+      <SecHead no="§6" title="What the FPGA actually measured." id="numbers">From the hardware logs of NetSilcon-6x4 on a Sipeed Tang Nano 20K at 27 MHz.</SecHead>
+      <div class="two">
+        <figure class="fig"><Waveform /><figcaption><span>Latency of the neural network on the FPGA</span><span>counted in hardware <Tag b="M" /></span></figcaption></figure>
+        <ul class="facts">
+          <li><b class="num">15 clocks</b> per inference, every time: 0.556 µs <Tag b="M" /></li>
+          <li><b class="num">13.5 M</b> inferences per second throughput <Tag b="M" /></li>
+          <li><b class="num">576 / 576</b> bit-exact on each of three different jobs, one bitstream <Tag b="M" /></li>
+          <li><b class="num">31 ms</b> to load a new 201-byte model over UART; a corrupted model is refused <Tag b="M" /></li>
+          <li><b class="num">9,600</b> hardware-in-the-loop decisions, 0 mismatches <Tag b="M" /></li>
+          <li><b class="num">139.5 mW</b> for the whole FPGA, mostly static power <Tag b="E" /></li>
+        </ul>
+      </div>
+      <p class="mut" style="margin-top:20px;max-width:72ch">Try the same integer network in your browser in the <a href={u('/playground/')}>playground</a>, read how each neuron works on the <a href={u('/technology/')}>technology page</a>, or see the full <a href={u('/netsilcon-6x4/')}>NetSilcon-6x4 specifications</a>.</p>
+    </section>
+
+    <section class="sec" aria-labelledby="faq">
+      <SecHead no="§7" title="Neural network on FPGA: frequently asked questions." id="faq" />
+      <div class="faq">
+        {faq.map((f) => (<details><summary><h3>{f.q}</h3></summary><p>{f.a}</p></details>))}
+      </div>
+    </section>
+
+    <section class="cta">
+      <div><h2>Build your own neural network on an FPGA.</h2><p class="lede">The Verilog, the Python tools, the model files and every test log are open source under Apache-2.0.</p></div>
+      <div class="btns"><a class="btn pri" href={SITE.githubUrl} rel="noopener">Get the code</a><a class="btn" href={u('/docs/train-your-own-model/')}>Train your own model</a></div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .toc { display: flex; flex-direction: column; border-top: 1px solid var(--ink); }
+  .toc a { font: 14px var(--mono); text-decoration: none; padding: 9px 0; border-bottom: 1px solid var(--rule-2); min-height: 40px; color: var(--mut); }
+  .toc a:hover { color: var(--acc); }
+  .two { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
+  .blocks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-left: 1px solid var(--rule); }
+  .blocks li { padding: 20px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); background: var(--surface); }
+  .blocks h3 { margin-bottom: 8px; }
+  .blocks .mut { margin: 0; font-size: 16px; }
+  .cap { text-align: left; font: 12px var(--mono); color: var(--mut); padding: 10px 14px; border-bottom: 1px solid var(--rule-2); }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .steps li { padding: 16px 14px 18px; border-left: 1px solid var(--rule); display: grid; gap: 10px; align-content: start; }
+  .steps li:first-child { border-left: 0; padding-left: 0; }
+  .steps .n { color: var(--acc); font-size: 13px; }
+  .steps h3 { font-size: 17px; margin-bottom: 6px; }
+  .steps .mut { font-size: 14px; margin: 0; }
+  .facts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+  .facts li { padding: 12px 0; border-bottom: 1px solid var(--rule-2); font-size: 16px; }
+  .faq { border-top: 1px solid var(--ink); max-width: 860px; }
+  .faq details { border-bottom: 1px solid var(--rule); }
+  .faq summary { cursor: pointer; padding: 16px 0; list-style: none; display: flex; justify-content: space-between; gap: 16px; align-items: baseline; min-height: 48px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: '+'; font: 18px var(--mono); color: var(--acc); }
+  .faq details[open] summary::after { content: '−'; }
+  .faq summary h3 { font-size: 19px; }
+  .faq p { color: var(--mut); margin: 0 0 18px; max-width: 72ch; }
+  .more { margin: 18px 0 0; } .more a, .mut a { color: var(--acc); font-weight: 600; }
+  .cta { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px 48px; align-items: end; border-top: 2px solid var(--ink); padding-top: 28px; margin-top: clamp(48px, 7vw, 96px); }
+  .cta .lede { margin: 14px 0 0; } .cta .btns { justify-content: flex-end; }
+  @media (max-width: 1100px) {
+    .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .steps li:nth-child(5) { border-left: 0; padding-left: 0; }
+    .steps li:nth-child(n+5) { border-top: 1px solid var(--rule); }
+  }
+  @media (max-width: 960px) { .two, .cta { grid-template-columns: minmax(0, 1fr); } .blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cta .btns { justify-content: flex-start; } }
+  @media (max-width: 640px) {
+    .blocks { grid-template-columns: minmax(0, 1fr); }
+    .steps { grid-template-columns: minmax(0, 1fr); }
+    .steps li { grid-template-columns: 2.4em minmax(0, 1fr); border-left: 0; padding: 14px 0; border-top: 1px solid var(--rule); }
+    .steps li:first-child { border-top: 0; }
+  }
+</style>

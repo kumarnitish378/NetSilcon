@@ -11,7 +11,9 @@ const i = docs.findIndex((d) => d.id === slug);
 const prev = i > 0 ? docs[i - 1] : null;
 const next = i >= 0 && i < docs.length - 1 ? docs[i + 1] : null;
 ---
-<Base title={`${title} · Docs`} description={description}>
+<Base title={`${title} · Docs`} description={description} ogType={slug ? 'article' : 'website'}
+  crumbs={slug ? [{ name: 'Docs', path: '/docs/' }, { name: title, path: `/docs/${slug}/` }] : [{ name: 'Docs', path: '/docs/' }]}
+  jsonld={slug ? [{ '@type': 'TechArticle', headline: title, description, author: { '@type': 'Person', name: SITE.author }, url: new URL(u(`/docs/${slug}/`), Astro.site).toString(), inLanguage: 'en', about: ['Neural network on FPGA', 'Tang Nano 20K', 'Verilog'] }] : []}>
   <link slot="head" rel="stylesheet" href={u('/pagefind/pagefind-ui.css')} />
   <div class="wrap docs">
     <aside class="side" aria-label="Documentation" data-pagefind-ignore>

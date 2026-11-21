@@ -18,13 +18,13 @@ const eqQ = tex(String.raw`q = \operatorname{round}\!\left(\frac{\text{value}}{\
 const eqEx = tex(String.raw`\mathrm{acc} = -7789 + 64(1) + 102(-2) + 74(36) + 53(127) = 1466`);
 const eqEx2 = tex(String.raw`y = (1466 + 2^{7}) \gg 8 = 1594 \gg 8 = 6`);
 ---
-<Base title="Technology" description="How NetSilcon works: a fixed neural-network shape in hardware with loadable weights, explained step by step with real numbers.">
+<Base fullTitle="How the FPGA neural network works · NetSilcon technology" description="How NetSilcon's neural network on FPGA works: int8 neurons, a 15-clock pipeline with 72 multipliers and CRC-safe weight loading, step by step." crumbs={[{ name: 'Technology', path: '/technology/' }]}>
   <div class="wrap">
     <header class="pagehd">
       <div>
         <span class="crumb">Technology</span>
         <h1>How NetSilcon works, one step at a time.</h1>
-        <p class="lede">No prior knowledge of neural networks needed. We'll start with an op-amp, follow one real number through one neuron, and end with the model swap that makes the same chip do a new job.</p>
+        <p class="lede">How a neural network runs on an FPGA, with no prior knowledge needed. We'll start with an op-amp, follow one real number through one neuron, and end with the model swap that makes the same chip do a new job.</p>
       </div>
       <nav class="toc" aria-label="On this page">
         <a href="#idea">1 · The op-amp idea</a><a href="#neuron">2 · One neuron, with real numbers</a><a href="#network">3 · From neurons to a network</a><a href="#pipeline">4 · The 15-clock pipeline</a><a href="#loading">5 · Loading a model safely</a><a href="#why">6 · Why fix the shape?</a>
@@ -175,7 +175,7 @@ const eqEx2 = tex(String.raw`y = (1466 + 2^{7}) \gg 8 = 1594 \gg 8 = 6`);
         <div><h3>The cost of flexibility, measured</h3><p class="mut">With the weights fixed as constants, the design used 21 % of the FPGA's logic. With weights, biases and shifts loadable, it uses 49 %. That difference is the price of “many jobs” instead of one. <Tag b="M" /></p></div>
         <div><h3>An honest limit</h3><p class="mut">170 parameters is deliberately small. It suits sensor-level decisions, not vision or language. A larger shape, 16 → 64×6 → 16, is in design.</p></div>
       </div>
-      <p class="more"><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4 specifications →</a> &nbsp; <a href={u('/docs/model-image/')}>Model image format →</a></p>
+      <p class="more"><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4 specifications →</a> &nbsp; <a href={u('/docs/model-image/')}>Model image format →</a> &nbsp; <a href={u('/neural-network-on-fpga/')}>Neural network on FPGA: the full guide →</a></p>
     </section>
   </div>
 </Base>

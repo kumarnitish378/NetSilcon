@@ -4,7 +4,7 @@ import { getCollection } from 'astro:content';
 const docs = (await getCollection('docs')).sort((a, b) => a.data.order - b.data.order);
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
-<Docs title="Documentation" description="Everything you need to run NetSilcon-6x4 on a Tang Nano 20K, talk to it, and train your own models.">
+<Docs title="Documentation" description="Docs for running a neural network on an FPGA with NetSilcon-6x4: Tang Nano 20K setup, UART protocol, model format, training and hardware-in-the-loop.">
   <ol class="doclist">
     {docs.map((d, i) => (
       <li><span class="num callout">{String(i + 1).padStart(2, '0')}</span><div><h2><a href={`${base}/docs/${d.id}/`}>{d.data.title}</a></h2><p>{d.data.description}</p></div></li>

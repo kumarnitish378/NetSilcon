@@ -6,7 +6,7 @@ import { applications } from '../data/facts';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 ---
-<Base title="Applications" description="What NetSilcon-6x4 can decide: motor and ESC faults, irrigation, robot obstacle decisions, BMS cell anomalies, pump cavitation, fan and spindle health, sensor plausibility.">
+<Base title="Applications" crumbs={[{ name: 'Applications', path: '/applications/' }]} description="Uses for a small neural network on FPGA: motor and ESC faults, irrigation, robot obstacle decisions, BMS cell anomalies, pump cavitation and fan health.">
   <div class="wrap">
     <header class="pagehd">
       <div>

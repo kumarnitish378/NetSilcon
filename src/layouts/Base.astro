@@ -3,11 +3,11 @@ import '../styles/global.css';
 import { SITE, repo } from '../config';
 import Logo from '../components/Logo.astro';
 
-interface Props { title?: string; description?: string; wide?: boolean; noGrid?: boolean }
-const { title, description = SITE.description, noGrid = false } = Astro.props;
+interface Props { title?: string; fullTitle?: string; description?: string; noGrid?: boolean; ogType?: string; jsonld?: Record<string, unknown>[]; crumbs?: { name: string; path: string }[] }
+const { title, fullTitle: fullTitleProp, description = SITE.description, noGrid = false, ogType = 'website', jsonld = [], crumbs } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
-const fullTitle = title ? `${title} · NetSilcon` : 'NetSilcon · open-source neural-network hardware';
+const fullTitle = fullTitleProp ?? (title ? `${title} · NetSilcon` : 'Neural network on FPGA · NetSilcon open-source NN hardware');
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(u('/og.png'), Astro.site);
 const path = Astro.url.pathname.replace(base, '') || '/';
@@ -21,11 +21,19 @@ const primary = [
   { href: '/playground/', label: 'Playground' },
 ];
 const secondary = [
+  { href: '/neural-network-on-fpga/', label: 'Neural network on FPGA: guide' },
   { href: '/applications/', label: 'Applications' },
   { href: '/roadmap/', label: 'Roadmap' },
   { href: '/news/', label: 'News' },
   { href: '/downloads/', label: 'Downloads' },
   { href: '/about/', label: 'About & contact' },
+];
+const abs = (p: string) => new URL(u(p), Astro.site).toString();
+const person = { '@type': 'Person', name: SITE.author, url: SITE.contact.github || undefined };
+const ld: Record<string, unknown>[] = [
+  { '@context': 'https://schema.org', '@type': 'WebSite', name: 'NetSilcon', url: abs('/'), description: SITE.description, inLanguage: 'en', author: person },
+  ...(crumbs && crumbs.length ? [{ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ name: 'Home', path: '/' }, ...crumbs].map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: abs(c.path) })) }] : []),
+  ...jsonld.map((j) => ({ '@context': 'https://schema.org', ...j })),
 ];
 const current = (href: string) => (href === '/' ? path === '/' : path.startsWith(href.replace(/\/$/, ''))) ? 'page' : undefined;
 ---
@@ -41,7 +49,7 @@ const current = (href: string) => (href === '/' ? path === '/' : path.startsWith
   <link rel="sitemap" href={u('/sitemap-index.xml')} />
   <meta name="theme-color" content="#F2F5F9" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)" />
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content={ogType} />
   <meta property="og:site_name" content="NetSilcon" />
   <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={description} />
@@ -50,7 +58,12 @@ const current = (href: string) => (href === '/' ? path === '/' : path.startsWith
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={fullTitle} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImage} />
   <meta name="author" content={SITE.author} />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <script type="application/ld+json" set:html={JSON.stringify(ld).replace(/</g, '\\u003c')} />
   <script is:inline>
     (function () {
       var t = null;
@@ -96,7 +109,7 @@ const current = (href: string) => (href === '/' ? path === '/' : path.startsWith
       <div class="foot-grid">
         <div>
           <a class="brand" href={u('/')} style="margin:0 0 10px"><Logo />NetSilcon</a>
-          <p style="max-width:40ch">Open-source neural-network hardware. A fixed network shape with loadable numbers. A personal project by {SITE.author}.</p>
+          <p style="max-width:40ch">An open-source neural network on FPGA, designed to become a chip. A fixed network shape with loadable numbers. A personal project by {SITE.author}.</p>
         </div>
         <div><h2>Product</h2><ul>
           <li><a href={u('/technology/')}>Technology</a></li>
@@ -106,6 +119,7 @@ const current = (href: string) => (href === '/' ? path === '/' : path.startsWith
           <li><a href={u('/roadmap/')}>Roadmap</a></li>
         </ul></div>
         <div><h2>Build</h2><ul>
+          <li><a href={u('/neural-network-on-fpga/')}>Neural network on FPGA</a></li>
           <li><a href={u('/docs/')}>Docs</a></li>
           <li><a href={u('/studio/')}>NetSilcon-Studio</a></li>
           <li><a href={u('/playground/')}>Playground</a></li>

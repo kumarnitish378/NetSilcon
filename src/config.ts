@@ -4,7 +4,7 @@ export const SITE = {
   name: 'NetSilcon',
   tagline: 'Fix the shape. Load the numbers. New job.',
   description:
-    'NetSilcon is open-source neural-network hardware: a fixed network shape with loadable weights, biases and shifts. The FPGA reference runs in 15 clock cycles, bit-exact.',
+    'NetSilcon is an open-source neural network on FPGA: a fixed int8 network in Verilog with loadable weights. 15 clock cycles per inference, bit-exact, on a Tang Nano 20K.',
   author: 'Nitish Kumar Sharma',
 
   /** GitHub repository of NetSilcon-6x4 (the RTL, tools and models). */

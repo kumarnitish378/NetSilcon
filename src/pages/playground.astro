@@ -5,7 +5,7 @@ import Tag from '../components/Tag.astro';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 ---
-<Base title="Playground" description="Try NetSilcon-6x4 in your browser: a bit-exact JavaScript copy of the int8 network with the real model files, and the rover simulator.">
+<Base fullTitle="FPGA neural network playground in your browser · NetSilcon" description="Try the NetSilcon FPGA neural network in your browser: a bit-exact copy of the int8 network with real model files, live neurons and a rover simulator." crumbs={[{ name: 'Playground', path: '/playground/' }]}>
   <div class="wrap">
     <header class="pagehd">
       <div>

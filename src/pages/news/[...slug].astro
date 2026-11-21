@@ -10,7 +10,9 @@ const { Content } = await render(post);
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 ---
-<Base title={post.data.title} description={post.data.description}>
+<Base title={post.data.title} description={post.data.description} ogType="article"
+  crumbs={[{ name: 'News', path: '/news/' }, { name: post.data.title, path: `/news/${post.id}/` }]}
+  jsonld={[{ '@type': 'BlogPosting', headline: post.data.title, description: post.data.description, datePublished: post.data.date.toISOString().slice(0, 10), author: { '@type': 'Person', name: 'Nitish Kumar Sharma' }, url: new URL(`${base}/news/${post.id}/`, Astro.site).toString(), image: new URL(`${base}/og.png`, Astro.site).toString() }]}>
   <div class="wrap">
     <article class="post">
       <header>

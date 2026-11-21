@@ -13,7 +13,7 @@ It works like an op-amp. The circuit never changes, but a few resistor values de
 
 ## It runs today
 
-This is not a concept. NetSilcon-6x4 runs on a Sipeed Tang Nano 20K FPGA board, a board that costs about ₹4,500. Measured on that board:
+This is not a concept. NetSilcon-6x4 is a neural network on an FPGA that runs today, on a Sipeed Tang Nano 20K board, a board that costs about ₹4,500. Measured on that board:
 
 - **0.556 µs per decision**, the same 15 clock cycles every time
 - **Three jobs on one bitstream:** a motor-fault detector, an irrigation controller and a rover driver
@@ -41,4 +41,4 @@ It is an FPGA prototype of a chip architecture, not a fabricated chip. It has no
 
 The goal is a complete toolchain, [NetSilcon-Studio](/studio/): train your own network, choose your own FPGA, and generate the hardware. One day, a dedicated chip.
 
-Everything is open source under Apache-2.0, and every number traces back to a log in the repository. If you build motor drives, battery systems, robots or FPGA tools, I'd like to hear from you.
+If you are new to the idea, start with the guide [Neural network on FPGA: how it works, step by step](/neural-network-on-fpga/). Everything is open source under Apache-2.0, and every number traces back to a log in the repository. If you build motor drives, battery systems, robots or FPGA tools, I'd like to hear from you.

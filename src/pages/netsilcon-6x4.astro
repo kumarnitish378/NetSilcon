@@ -10,7 +10,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 const typeName: Record<string, string> = { P: 'power', G: 'ground', I: 'input', O: 'output', OD: 'open-drain', A: 'analog', '–': '–' };
 ---
-<Base title="NetSilcon-6x4" description="NetSilcon-6x4 (NS6X4-Q24): a neural-network decision engine with a fixed 4-6-6-6-6-2 shape and a loadable 201-byte model. Specifications with measured, estimated and target labels.">
+<Base fullTitle="NetSilcon-6x4: FPGA neural network engine, specs and pinout" description="NetSilcon-6x4: an int8 neural network engine proven on FPGA, with a fixed 4-6-6-6-6-2 shape and a loadable 201-byte model. Specs, pinout, datasheet." crumbs={[{ name: 'NetSilcon-6x4', path: '/netsilcon-6x4/' }]}>
   <div class="wrap">
     <div class="docline"><span>NS6X4-Q24 · Rev 0.1 · preliminary</span><span>every value carries a basis: <Tag b="M" /> measured <Tag b="E" /> estimated <Tag b="T" /> target</span></div>
     <header class="pagehd">
