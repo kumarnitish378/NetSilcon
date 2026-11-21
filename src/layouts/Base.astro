@@ -62,7 +62,9 @@ const current = (href: string) => (href === '/' ? path === '/' : path.startsWith
   <meta name="twitter:description" content={description} />
   <meta name="twitter:image" content={ogImage} />
   <meta name="author" content={SITE.author} />
-  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  {SITE.googleSiteVerification && <meta name="google-site-verification" content={SITE.googleSiteVerification} />}
+  <link rel="alternate" type="text/plain" href={u('/llms.txt')} title="NetSilcon summary for AI assistants" />
   <script type="application/ld+json" set:html={JSON.stringify(ld).replace(/</g, '\\u003c')} />
   <script is:inline>
     (function () {

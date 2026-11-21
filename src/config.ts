@@ -7,6 +7,9 @@ export const SITE = {
     'NetSilcon is an open-source neural network on FPGA: a fixed int8 network in Verilog with loadable weights. 15 clock cycles per inference, bit-exact, on a Tang Nano 20K.',
   author: 'Nitish Kumar Sharma',
 
+  /** Google Search Console ownership token (HTML tag method). Keep it, or the site loses verification. */
+  googleSiteVerification: 'E7JXaJ2TNC3EShwt6R6UcwfqbLxSiNuTfNis9sI0WDE',
+
   /** GitHub repository of NetSilcon-6x4 (the RTL, tools and models). */
   githubUrl: 'https://github.com/kumarnitish378/NetSilcon-6x4',
 
