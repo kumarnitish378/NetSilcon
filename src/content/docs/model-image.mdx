@@ -1,0 +1,85 @@
+---
+title: "Model image format"
+description: "The 201 bytes that define a job: weights, biases and shifts, in a fixed order, protected by a CRC-16."
+order: 3
+---
+
+A NetSilcon-6x4 model is exactly **201 bytes**. Change these bytes and the same hardware does a different job.
+
+## Layout
+
+| Bytes | Content |
+|---|---|
+| 0 – 143 | 144 weights, int8. Layer by layer; inside a layer, neuron *j*, input *i* is at *j* × N<sub>in</sub> + *i* |
+| 144 – 195 | 26 biases, int16, low byte first |
+| 196 – 200 | 5 layer shifts, each 0…15 |
+
+The layers in order:
+
+| Layer | In → out | Weights | Biases |
+|---|---|---|---|
+| 1 | 4 → 6 | 24 | 6 |
+| 2 | 6 → 6 | 36 | 6 |
+| 3 | 6 → 6 | 36 | 6 |
+| 4 | 6 → 6 | 36 | 6 |
+| 5 (output) | 6 → 2 | 12 | 2 |
+| **Total** | | **144** | **26** |
+
+## The maths each neuron does
+
+$$
+\mathrm{acc} = b + \sum_{i} w_i\,x_i
+$$
+
+In the four hidden layers, negative sums become zero (ReLU). Then every layer rounds, shifts and clamps:
+
+$$
+y = \operatorname{clamp}\left(\left(\mathrm{acc} + 2^{\,s-1}\right) \gg s\right)
+$$
+
+When *s* = 0 there is no rounding term. Hidden layers clamp to 0…127, the output layer to −128…127. The accumulator is 20 bits wide; the largest possible sum, 32 767 + 6 × 127 × 127 = 129 541, fits with room to spare.
+
+## CRC-16
+
+**CRC-16/CCITT-FALSE**: polynomial `0x1021`, initial value `0xFFFF`, no reflection, no final XOR, computed over the 201 image bytes. The CRC is sent after the image, high byte first.
+
+```c
+uint16_t ns_crc16(const uint8_t *buf, uint16_t len)
+{
+    uint16_t crc = 0xFFFF;
+    while (len--) {
+        crc ^= (uint16_t)(*buf++) << 8;
+        for (int b = 0; b < 8; b++)
+            crc = (crc & 0x8000) ? (uint16_t)((crc << 1) ^ 0x1021) : (uint16_t)(crc << 1);
+    }
+    return crc;
+}
+```
+
+The CRCs of the models in the repository: `motor_fault` 5496, `irrigation` 8F33, `rover` (v2) 295B, `rover_v1` F5C2.
+
+## The model file (`models/*.json`)
+
+The loadable image travels inside a JSON file that also carries everything the host needs:
+
+| Key | Meaning |
+|---|---|
+| `format` | `"netsilcon-6x4 model v1"` |
+| `name`, `title` | short name and human title |
+| `kind` | `classifier` (decision: y1 > y0) or `regression` (value = y / 127, from −1 to +1) |
+| `inputs` | name, unit and full-scale range of each input |
+| `outputs` | labels for y0 and y1 |
+| `accuracy_int8` | accuracy of the integer model on its test set |
+| `weights`, `biases`, `shifts` | the 144 + 26 + 5 numbers |
+| `crc16` | CRC of the 201-byte image, as hex |
+| `demo` | scenarios shown by `netsilcon_host.py --demo` |
+| `tests` | golden vectors `[x0, x1, x2, x3, y0, y1]` |
+
+## How a load is handled
+
+1. Bytes after the `C3` header go into a 201-byte staging RAM. The CRC is computed as they arrive.
+2. After 203 bytes (image + CRC) the CRC remainder must be zero. If it is not, the reply is “CRC error” and the running model is untouched.
+3. If the CRC is good, the staging RAM is copied into the network's parameter registers: 201 clocks, 7.4 µs at 27 MHz.
+4. If 10 ms pass without a byte, the upload is abandoned with status “timeout”.
+
+> In the FPGA reference, an uploaded model lives in registers and the built-in model returns at power-off. Storing models in on-chip flash is a design target for the production chip.

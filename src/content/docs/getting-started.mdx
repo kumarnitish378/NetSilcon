@@ -1,0 +1,90 @@
+---
+title: "Getting started on the Tang Nano 20K"
+description: "Simulate the design on your PC, build the bitstream, load it on the board and run your first inference, step by step."
+order: 1
+---
+
+This guide takes you from nothing to a NetSilcon-6x4 answering questions on a real FPGA. Each step ends with a check, so you always know whether it worked.
+
+## What you need
+
+| Item | Notes |
+|---|---|
+| Sipeed Tang Nano 20K | FPGA: Gowin GW2AR-18 (GW2AR-LV18QN88C8/I7). Connects over USB-C. |
+| A PC | Windows or Linux. The commands below use `COM7`; yours may differ. |
+| Python 3 | with `numpy`, and `pyserial` for talking to the board |
+| Icarus Verilog | only for simulation |
+| Gowin EDA (Education edition) *or* the open-source tools | to build the bitstream |
+
+Get the code: clone the NetSilcon-6x4 repository from GitHub (link on the [Downloads](/downloads/) page).
+
+## Step 1 · Simulate, no board needed
+
+Simulation runs the Verilog on your PC and compares every result with the Python model.
+
+```bash
+bash scripts/run_all_tests.sh        # network vs Python, live UART, model upload
+# Windows without bash:  scripts\run_sim.bat
+```
+
+**Check:** every test ends with `RESULT: PASS`.
+
+## Step 2 · Build the bitstream
+
+### Option A · Gowin EDA
+
+1. Create a new project for the device **GW2AR-LV18QN88C8/I7**.
+2. Add `rtl/*.v`, `board/ns_uart.v`, `board/ns_loader.v`, `board/tangnano20k_uart.v`, `board/tangnano20k_uart.cst` and `board/tangnano20k.sdc`.
+3. Set the top module to `tangnano20k_uart`, add `gen/` to the include path, and copy `gen/*.mem` into the project folder.
+4. Run **Synthesize**, then **Place & Route**.
+
+**Check:** timing passes. The reference build reaches 29.1 MHz against the 27 MHz it needs.
+
+### Option B · Open-source flow
+
+```bash
+pip install yowasp-yosys yowasp-nextpnr-himbaechel-gowin apycula
+bash scripts/build_opensource.sh uart          # → build/netsilcon_uart.fs
+```
+
+## Step 3 · Load it on the board
+
+- **Gowin Programmer:** choose **SRAM Program**, cable *USB Debugger A*, 0.9 MHz, device GW2AR-18C.
+- **Open-source:** `openFPGALoader -b tangnano20k build/netsilcon_uart.fs`
+
+SRAM programming is lost at power-off. That is fine for testing.
+
+**Check:** LED0 blinks as a heartbeat. LED5 may light at start-up if the USB bridge sends a stray byte while the FPGA configures; this is harmless.
+
+> Want a quick board test without a PC tool? `bash scripts/build_opensource.sh selftest` builds a stand-alone self-test that runs all golden vectors inside the FPGA and reports PASS or FAIL on the LEDs and the serial port.
+
+## Step 4 · Talk to it
+
+Find the board's serial port (Windows: Device Manager → Ports). Then:
+
+```bash
+pip install pyserial
+cd host
+python netsilcon_host.py COM7 --info                     # which model is running?
+python netsilcon_host.py COM7 --values 10 24 3500 65     # one reading in real units
+python netsilcon_host.py COM7 --test                     # 576 vectors, bit-exact
+```
+
+**Check:** `--info` reports the built-in motor-fault model, and `--test` reports 576 of 576 matching, with a latency of 15 clocks.
+
+## Step 5 · Give it a new job
+
+```bash
+python netsilcon_host.py COM7 --load ../models/irrigation.json --corrupt   # must be REFUSED
+python netsilcon_host.py COM7 --load ../models/irrigation.json             # LOADED
+python netsilcon_host.py COM7 --demo
+```
+
+**Check:** the corrupted upload is refused and the old model keeps answering. The real upload replies `LOADED` with chip CRC `8F33`.
+
+Every run writes a `.log` and a `.csv` file to `host/logs/`, so you can compare your results with the reference logs in `docs/logs/`.
+
+## Next
+
+- [UART protocol](/docs/uart-protocol/): the bytes behind those commands
+- [Train your own model](/docs/train-your-own-model/)

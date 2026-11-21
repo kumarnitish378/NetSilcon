@@ -1,0 +1,12 @@
+---
+import Docs from '../../layouts/Docs.astro';
+import { getCollection, render } from 'astro:content';
+export async function getStaticPaths() {
+  const docs = await getCollection('docs');
+  return docs.map((d) => ({ params: { slug: d.id }, props: { doc: d } }));
+}
+const { doc } = Astro.props;
+const { Content } = await render(doc);
+import 'katex/dist/katex.min.css';
+---
+<Docs title={doc.data.title} description={doc.data.description} slug={doc.id}><Content /></Docs>

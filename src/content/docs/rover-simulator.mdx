@@ -1,0 +1,72 @@
+---
+title: "Rover simulator and hardware-in-the-loop"
+description: "A 2D rover with a LiDAR, driven by the NetSilcon network: in pure simulation, or with the real FPGA making every decision."
+order: 5
+---
+
+`rover_sim/` holds a 2D simulator of a car-like (Ackermann) rover with a 360° LiDAR, reduced to 4 corner sectors. The `rover.json` network drives it.
+
+## The controller
+
+The network has no memory of what it just did, so it is wrapped in two small fixed-logic blocks:
+
+- a **predictive safety stop**, which blocks a move only if the body would touch an obstacle within 0.4 s;
+- a **3-point-turn supervisor**, which steps in when the robot makes no progress.
+
+In the simulator these run on the PC. They are designed to move into the FPGA next to the network.
+
+## Run it in the browser
+
+`rover_simulator.html` is the same simulator in a single web page. It shows the inputs, the chip's raw outputs and every neuron's activation, and lets you switch between models v1 and v2. It is embedded in the [playground](/playground/#rover).
+
+## Run it in Python
+
+```bash
+cd rover_sim
+python rover_sim.py --sensors scanner --unstick            # 20 random starts × 4 worlds
+python rover_sim.py --sensors scanner --unstick --view     # watch one drive (needs matplotlib)
+python rover_sim.py --compare                              # all 4 combinations
+```
+
+Useful options: `--map` (one world), `--runs`, `--seconds`, `--noise 0.02` (sensor noise in metres), `--model` (another network file), `--no-safety`.
+
+## Results in simulation
+
+80 simulated drives per setup: 20 starts × 4 worlds × 90 s. From `rover_sim/batch_results.txt`.
+
+| Setup | Crashes | Stuck | Avg distance |
+|---|---|---|---|
+| v1 · 4 corner single-beam LiDARs, network only | 8 / 80 | 70 / 80 | 7 m |
+| v2 · 4 corner beams + supervisor | 19 / 80 | 0 / 80 | 28 m |
+| v1 · 360° scanner + supervisor | 0 / 80 | 4 / 80 | 29 m |
+| v2 · 360° scanner, network only | 0 / 80 | 72 / 80 | 10 m |
+| **v2 · 360° scanner + supervisor** | **0 / 80** | **0 / 80** | **37 m** |
+
+What it teaches:
+
+- **Single-beam sensors leave blind spots** between the beams, so a pillar straight ahead goes unseen. The 4-beam setups crash; the scanner setups do not.
+- **A network with no memory needs a supervisor** to get out of dead ends. Without it, the robot stops at a wall and stays there.
+- **Training on the situations the robot actually met** in the simulator fixed the rest.
+
+## Hardware in the loop
+
+Here the PC simulates the world, the LiDAR, the physics and the fixed logic, and the **real FPGA computes speed and steering every 50 ms**.
+
+```bash
+python rover_sim.py --hil COM7 --map clutter --view     # the real FPGA drives, live window
+python rover_sim.py --hil COM7                          # HIL batch
+python rover_sim.py --hil COM7 --noise 0.02             # HIL batch with ±2 cm sensor noise
+```
+
+Measured on the Tang Nano 20K at 27 MHz:
+
+| Run | Chip answers | Mismatches | Crashes | Stuck | USB round trip |
+|---|---|---|---|---|---|
+| No sensor noise | 9,600 | 0 | 0 / 8 | 0 / 8 | avg 16.2 ms, max 18.8 ms |
+| ±2 cm sensor noise | 9,600 | 0 | 0 / 8 | 0 / 8 | avg 15.5 ms, max 19.5 ms |
+
+No step came near the 50 ms control period. Almost all of the round trip is USB serial; the chip itself answers in 0.556 µs.
+
+## What HIL proves, and what it does not
+
+It proves the hardware makes exactly the same decisions as the simulation, in real time. It does not prove how real LiDAR noise, reflections and motors behave. Real sensors are the next step on the [roadmap](/roadmap/).

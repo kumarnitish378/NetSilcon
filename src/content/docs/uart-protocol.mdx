@@ -1,0 +1,68 @@
+---
+title: "UART protocol"
+description: "Three commands, fixed 5-byte replies: infer, load a model, and ask which model is running."
+order: 2
+---
+
+The link runs at **115200 baud, 8 data bits, no parity, 1 stop bit**, through the Tang Nano 20K's USB-C port (BL616 USB-serial bridge; FPGA pin 69 = TX to PC, pin 70 = RX from PC).
+
+Every reply is exactly **5 bytes**. If more than about 10 ms passes in the middle of a frame, the FPGA drops the partial frame and waits for a new header, so it can never get stuck.
+
+## Inference · `A5`
+
+| Direction | Bytes |
+|---|---|
+| PC → FPGA | `A5 x0 x1 x2 x3` |
+| FPGA → PC | `5A y0 y1 flags latency` |
+
+- `x0…x3` are the inputs, each 0…127. Convert a real value with q = round(value / full scale × 127).
+- `y0`, `y1` are the outputs, signed int8.
+- `flags` bit 0 is `1` when `y1 > y0`: the decision bit for classifiers.
+- `latency` is the number of clocks from the last input byte to the answer, counted in hardware. It is always 15.
+
+### Worked example
+
+The motor-fault model, at 10 A, 24 V, 3500 rpm and 50 °C (full scales 20 A, 30 V, 6000 rpm, 120 °C):
+
+```text
+PC → FPGA   A5 40 66 4A 35        inputs 64, 102, 74, 53
+FPGA → PC   5A 05 F5 00 0F        y0 = 5, y1 = −11, decision 0 (HEALTHY), 15 clocks
+```
+
+You can watch these exact bytes change in the [playground](/playground/).
+
+## Load a model · `C3`
+
+| Direction | Bytes |
+|---|---|
+| PC → FPGA | `C3`, the 201-byte image, then the CRC-16 (high byte, low byte): 204 bytes in all |
+| FPGA → PC | `3C status crc_lo crc_hi loads` |
+
+- `status`: `0` = loaded, `1` = CRC error, `2` = timeout (frame incomplete). For `1` and `2` the old model keeps running.
+- `loads` counts the successful uploads since power-up.
+
+The image layout and CRC are described in [Model image format](/docs/model-image/).
+
+## Which model is running? · `C5`
+
+| Direction | Bytes |
+|---|---|
+| PC → FPGA | `C5` |
+| FPGA → PC | `5C crc_lo crc_hi source loads` |
+
+`source`: `0` = the built-in model from the bitstream (the CRC then reads `0000`; the host tool computes the built-in CRC itself from `gen/`), `1` = an uploaded model, whose CRC-16 is reported.
+
+## LEDs (active low)
+
+| LED | Meaning |
+|---|---|
+| LED0 | heartbeat |
+| LED1 | toggles on every answer |
+| LED2 | last answer: `y1 ≤ y0` |
+| LED3 | last answer: `y1 > y0` |
+| LED4 | an uploaded model is running |
+| LED5 | a frame or CRC error has been seen (stays on until reset) |
+
+## SPI
+
+SPI mode 0 is planned for the production chip and is not in the FPGA reference yet. See the [datasheet](/files/NetSilcon-6x4_Datasheet.pdf), Section 9, for the target specification.

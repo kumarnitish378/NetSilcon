@@ -1,0 +1,67 @@
+---
+title: "Train your own model"
+description: "Any job with 4 inputs and 2 outputs fits. Describe it in apps.py, run one command, and load the result."
+order: 4
+---
+
+NetSilcon's shape never changes, so making a new job means making new numbers. The tools do the training, the integer conversion and the packing; your part is to describe the job.
+
+## 1 · Check that your job fits
+
+Ask three questions:
+
+- **Can I describe the situation with 4 numbers?** For example current, voltage, speed and temperature.
+- **Is the answer one of two labels, or two values?** HEALTHY / FAULT, or speed and steering.
+- **Does each decision stand on its own?** The network sees only the current 4 inputs. If the past matters, feed it a feature that carries the past, such as a rate of change.
+
+## 2 · Describe the job in `model/apps.py`
+
+Each app is a Python `dict`. The easiest start is to copy the `IRRIGATION` entry and change it:
+
+| Field | What to put |
+|---|---|
+| `name` | short name; also the output file name |
+| `title` | human-readable title |
+| `inputs` | 4 entries with `name`, `unit` and `range` (full scale). The chip sees q = round(value / range × 127) |
+| `outputs` | 2 labels. Decision = `outputs[1]` if y1 > y0, else `outputs[0]` |
+| `make(n, seed)` | returns `(X, labels)`: `n` samples of the 4 inputs in real units, and their labels |
+| `demo` | a few scenarios, each a title and a list of input rows, for `--demo` |
+| `kind` | optional: `"regression"` for two continuous outputs |
+
+Register it in the `APPS` dictionary at the bottom of the file.
+
+A tip from the rover model: **rules with sudden jumps are hard for a small network.** Rules that flip straight from one answer to another were learned with 78 % agreement; the same rules rewritten as smooth ramps reached 95 %.
+
+## 3 · Train, quantize and pack
+
+```bash
+cd model
+python make_model.py <name>
+```
+
+This trains the 4 → 6 → 6 → 6 → 6 → 2 network in floating point with plain numpy, converts it to int8 weights, int16 biases and one shift per layer, checks the integer model against the float model, and writes `models/<name>.json` with the CRC, demo scenarios and golden test vectors.
+
+**Check:** the script prints the int8 accuracy, the 5 shifts and the CRC.
+
+## 4 · Try it before you touch the board
+
+The [playground](/playground/) runs the same bit-exact maths in your browser. For your own file, the quickest check is the host tool's `--test` mode once it is on the board, or the repository's simulation scripts.
+
+## 5 · Load and verify on the chip
+
+```bash
+cd host
+python netsilcon_host.py COM7 --load ../models/<name>.json
+python netsilcon_host.py COM7 --test       # every golden vector must match
+python netsilcon_host.py COM7 --demo
+```
+
+**Check:** `LOADED` with the same CRC the script printed, and every test vector matching.
+
+## Regression models
+
+For two continuous outputs (like the rover's speed and steering), set `kind` to `"regression"`. The quantizer scales the last layer so that the chip's output is exactly value × 127. Read the result as y / 127, from −1 to +1.
+
+## Judge it in the real loop
+
+Accuracy on a test set is not the same as good behaviour. The rover's v2 model copies its training rules less exactly than v1 (91.5 % against 95.5 %) yet drives far better in closed loop. When the decision drives something, test it in a simulator or on the bench, not only on paper.

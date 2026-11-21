@@ -1,0 +1,99 @@
+---
+import Base from './Base.astro';
+import { getCollection } from 'astro:content';
+import { SITE } from '../config';
+interface Props { title: string; description: string; slug?: string }
+const { title, description, slug } = Astro.props;
+const docs = (await getCollection('docs')).sort((a, b) => a.data.order - b.data.order);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const i = docs.findIndex((d) => d.id === slug);
+const prev = i > 0 ? docs[i - 1] : null;
+const next = i >= 0 && i < docs.length - 1 ? docs[i + 1] : null;
+---
+<Base title={`${title} · Docs`} description={description}>
+  <link slot="head" rel="stylesheet" href={u('/pagefind/pagefind-ui.css')} />
+  <div class="wrap docs">
+    <aside class="side" aria-label="Documentation" data-pagefind-ignore>
+      <div class="search">
+        <p class="callout" id="search-label">Search the site</p>
+        <div id="docsearch" data-base={base}>
+          <noscript><p class="small">Search needs JavaScript. Use the list below.</p></noscript>
+        </div>
+      </div>
+      <nav>
+        <p class="callout">Docs</p>
+        <ol>
+          <li><a href={u('/docs/')} aria-current={!slug ? 'page' : undefined}>Overview</a></li>
+          {docs.map((d) => <li><a href={u(`/docs/${d.id}/`)} aria-current={d.id === slug ? 'page' : undefined}>{d.data.title}</a></li>)}
+        </ol>
+        <p class="callout" style="margin-top:20px">Elsewhere</p>
+        <ol>
+          <li><a href={u('/technology/')}>Technology</a></li>
+          <li><a href={u('/netsilcon-6x4/')}>Specifications</a></li>
+          <li><a href={SITE.githubUrl} rel="noopener">GitHub</a></li>
+        </ol>
+      </nav>
+    </aside>
+    <article class="doc">
+      <header>
+        <span class="crumb"><a href={u('/docs/')}>Docs</a>{slug && <> / {title}</>}</span>
+        <h1>{title}</h1>
+        <p class="lede">{description}</p>
+      </header>
+      <div class="prose"><slot /></div>
+      {(prev || next) && (
+        <nav class="pn" aria-label="Previous and next page">
+          {prev ? <a href={u(`/docs/${prev.id}/`)}><span class="callout">← Previous</span>{prev.data.title}</a> : <span />}
+          {next ? <a class="nx" href={u(`/docs/${next.id}/`)}><span class="callout">Next →</span>{next.data.title}</a> : <span />}
+        </nav>
+      )}
+    </article>
+  </div>
+  <script>
+    const el = document.getElementById('docsearch');
+    if (el) {
+      const base = el.dataset.base || '';
+      const s = document.createElement('script');
+      s.src = `${base}/pagefind/pagefind-ui.js`;
+      s.onload = () => {
+        // @ts-ignore
+        new window.PagefindUI({ element: '#docsearch', showSubResults: true, showImages: false, resetStyles: false, translations: { placeholder: 'Search docs and pages' } });
+      };
+      s.onerror = () => { el.innerHTML = '<p class="small">Search is built with the site (npm run build).</p>'; };
+      document.head.appendChild(s);
+    }
+  </script>
+</Base>
+<style>
+  .docs { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); padding-top: clamp(24px, 4vw, 48px); }
+  .side { position: sticky; top: 76px; align-self: start; max-height: calc(100vh - 92px); overflow-y: auto; padding-bottom: 24px; }
+  .side ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+  .side li a { display: flex; align-items: center; min-height: 40px; padding: 6px 0 6px 12px; border-bottom: 1px solid var(--rule-2); text-decoration: none; font-size: 15px; color: var(--mut); border-left: 2px solid transparent; }
+  .side li a:hover { color: var(--ink); }
+  .side li a[aria-current='page'] { color: var(--ink); border-left-color: var(--acc); font-weight: 600; }
+  .side .callout { margin: 0 0 6px; display: block; }
+  .search { margin-bottom: 24px; }
+  .doc { max-width: 800px; padding-bottom: 24px; position: relative; background: var(--bg); }
+  .doc header { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 24px; }
+  .doc .crumb { font: 500 13px var(--mono); color: var(--mut); }
+  .doc .crumb a { text-decoration: none; }
+  .doc h1 { font-size: clamp(30px, 4vw, 46px); margin: 10px 0 12px; }
+  .doc .lede { margin: 0; }
+  .pn { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 40px; border-top: 1px solid var(--ink); padding-top: 16px; }
+  .pn a { display: grid; gap: 4px; text-decoration: none; font-weight: 600; padding: 10px 0; }
+  .pn .nx { text-align: right; }
+  @media (max-width: 900px) {
+    .docs { grid-template-columns: minmax(0, 1fr); }
+    .side { position: static; max-height: none; overflow: visible; border-bottom: 2px solid var(--ink); }
+    .side nav ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+  }
+  @media (max-width: 480px) { .side nav ol { grid-template-columns: minmax(0, 1fr); } }
+  :global(#docsearch) {
+    --pagefind-ui-scale: .82; --pagefind-ui-primary: var(--acc); --pagefind-ui-text: var(--ink); --pagefind-ui-background: var(--surface);
+    --pagefind-ui-border: var(--ink); --pagefind-ui-tag: var(--rule-2); --pagefind-ui-border-width: 1px; --pagefind-ui-border-radius: 0; --pagefind-ui-font: var(--sans);
+  }
+  :global(#docsearch .pagefind-ui__search-input) { font-size: 16px; }
+  :global(#docsearch .pagefind-ui__result-link) { color: var(--ink); }
+  :global(#docsearch mark) { background: var(--acc-bg); color: var(--ink); }
+</style>

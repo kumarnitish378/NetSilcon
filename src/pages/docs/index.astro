@@ -1,0 +1,20 @@
+---
+import Docs from '../../layouts/Docs.astro';
+import { getCollection } from 'astro:content';
+const docs = (await getCollection('docs')).sort((a, b) => a.data.order - b.data.order);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Docs title="Documentation" description="Everything you need to run NetSilcon-6x4 on a Tang Nano 20K, talk to it, and train your own models.">
+  <ol class="doclist">
+    {docs.map((d, i) => (
+      <li><span class="num callout">{String(i + 1).padStart(2, '0')}</span><div><h2><a href={`${base}/docs/${d.id}/`}>{d.data.title}</a></h2><p>{d.data.description}</p></div></li>
+    ))}
+  </ol>
+</Docs>
+<style>
+  .doclist { list-style: none; padding: 0; margin: 0; }
+  .doclist li { display: grid; grid-template-columns: 3em minmax(0, 1fr); gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+  .doclist h2 { font-size: 22px; margin: 0 0 6px; padding: 0; border: 0; }
+  .doclist h2 a { text-decoration: none; }
+  .doclist p { margin: 0; color: var(--mut); }
+</style>

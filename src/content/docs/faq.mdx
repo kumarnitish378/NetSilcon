@@ -1,0 +1,55 @@
+---
+title: "FAQ"
+description: "Short answers to the questions people ask most about NetSilcon."
+order: 6
+---
+
+## Is NetSilcon a real chip?
+
+Not yet. NetSilcon-6x4 is a working **FPGA prototype** on a Sipeed Tang Nano 20K, verified on real hardware. The QFN-24 package, the 3.3 V / 2.5 mA figures, SPI and on-chip flash are design targets for production silicon, and are labelled **T** on this site.
+
+## What do M, E and T mean?
+
+- **M** · measured on the FPGA reference implementation
+- **E** · estimated by design tools (such as Gowin's power analysis) or from a datasheet
+- **T** · a design target for production silicon, not built yet
+
+## Why such a small network?
+
+170 parameters is enough for sensor-level decisions: a fault check from four readings, a water/skip decision, a driving command from four distances. Small means fast, predictable and cheap. It is not meant for images, audio or language. A larger shape, NetSilcon-64x6 (16 → 64×6 → 16), is in design.
+
+## How is it different from running the network on a microcontroller?
+
+A microcontroller runs the network as instructions, one multiplication after another. On a Cortex-M4 the same network takes about 2,300 instructions, 14–21 µs at 168 MHz. NetSilcon computes all neurons of a layer at once and finishes in 15 clocks, 0.556 µs at 27 MHz, every time. See [Benchmarks](/benchmarks/).
+
+## Is a laptop CPU faster?
+
+Yes. On a network this small, one laptop core is about 5× faster. It also draws 10–55 W and needs an operating system. NetSilcon is meant to sit beside a microcontroller, not to replace a PC.
+
+## Is the hardware result exactly the same as the software model?
+
+Yes, bit for bit. Each model ships with 576 golden test vectors, and all 576 match on the FPGA for each of the three jobs. In hardware-in-the-loop, every one of 9,600 decisions matched the Python model.
+
+## What happens if a model upload goes wrong?
+
+Nothing bad. The upload goes into a staging buffer and is only swapped in if its CRC-16 is correct. A damaged or interrupted upload is refused, and the running model keeps working.
+
+## Does an uploaded model survive power-off?
+
+Not on the FPGA reference: uploaded models live in registers and the built-in model comes back at power-up. Flash storage is next on the roadmap.
+
+## Can I use a different network shape?
+
+Not on NetSilcon-6x4: the shape is the fixed part. Generating hardware for your own shape and your own FPGA is the plan for [NetSilcon-Studio](/studio/).
+
+## Can I use it in a safety-critical system?
+
+Not as the only protection. The datasheet states that NetSilcon-6x4 is not designed or certified as the sole protection in life-support, automotive, aviation or other safety-critical systems. Use it beside proper safety logic, for example ANDed with the MCU's enable.
+
+## What licence is it under?
+
+Apache License 2.0, for the RTL, the tools, the model files and the documentation.
+
+## Who makes NetSilcon?
+
+It is a personal open-source project by Nitish Kumar Sharma, an embedded engineer. See [About](/about/).
