@@ -1,0 +1,299 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import Tag from '../components/Tag.astro';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+---
+<Base title="Playground" description="Try NetSilcon-6x4 in your browser: a bit-exact JavaScript copy of the int8 network with the real model files, and the rover simulator.">
+  <div class="wrap">
+    <header class="pagehd">
+      <div>
+        <span class="crumb">Playground</span>
+        <h1>Try the chip in your browser.</h1>
+        <p class="lede">Move the four inputs and watch every neuron answer. This page runs the same integer maths as the hardware, with the real weights from the repository's model files. It is a software copy, not the FPGA itself.</p>
+      </div>
+      <div class="panel verify" id="verify">
+        <p class="callout" style="margin:0 0 6px">Bit-exact check</p>
+        <p class="vline"><span class="num" id="v-result">576 / 576</span> <span class="small" id="v-label">golden vectors match</span></p>
+        <p class="small" style="margin:0 0 12px">Each model file carries 576 input/output pairs recorded from the int8 reference. The JavaScript copy is checked against all of them.</p>
+        <button class="btn" type="button" id="v-run">Run the check again</button>
+      </div>
+    </header>
+
+    <section class="sec pg" aria-labelledby="try">
+      <SecHead no="§1 Try it" title="Four inputs, one decision." id="try" />
+      <div class="models" role="radiogroup" aria-label="Model">
+        <button type="button" role="radio" data-m="motor_fault" aria-checked="true">Motor fault</button>
+        <button type="button" role="radio" data-m="irrigation" aria-checked="false">Irrigation</button>
+        <button type="button" role="radio" data-m="rover" aria-checked="false">Rover v2</button>
+        <button type="button" role="radio" data-m="rover_v1" aria-checked="false">Rover v1</button>
+      </div>
+      <p class="small" id="m-meta" style="margin:10px 0 18px"></p>
+
+      <div class="grid">
+        <div class="controls panel">
+          <div id="sliders"></div>
+          <div class="demo">
+            <label class="callout" for="scen">Demo scenario from the model file</label>
+            <div class="demorow">
+              <select id="scen"></select>
+              <button class="btn" type="button" id="step">Next step <span aria-hidden="true">→</span></button>
+            </div>
+            <p class="small" id="scen-pos" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <figure class="fig netfig">
+          <svg id="pgnet" viewBox="0 0 620 330" role="img" aria-label="Live network: each circle is a neuron, filled by how strongly it is active. Lines show the weights carrying the signal; teal is a positive contribution, grey a negative one."></svg>
+          <figcaption><span>Neuron fill = activation, 0…127</span><span>edge = weight × input: teal positive, grey negative</span></figcaption>
+        </figure>
+
+        <div class="out panel" aria-live="polite">
+          <p class="callout" style="margin:0 0 4px">Answer</p>
+          <div id="decision" class="decision"></div>
+          <div id="gauges"></div>
+          <dl class="ys">
+            <dt>y0</dt><dd class="num" id="y0"></dd>
+            <dt>y1</dt><dd class="num" id="y1"></dd>
+            <dt>latency</dt><dd class="num">15 clk · 0.556 µs <Tag b="M" /></dd>
+          </dl>
+          <div class="bytes">
+            <p class="callout">UART frames</p>
+            <p class="num"><span class="dir">PC → chip</span><code id="tx"></code></p>
+            <p class="num"><span class="dir">chip → PC</span><code id="rx"></code></p>
+          </div>
+          <p class="small crc">Model image: 201 bytes · CRC-16 <span class="num" id="crc"></span></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="rover" id="rover-sec">
+      <SecHead no="§2 Rover simulator" title="Let the network drive." id="rover">The repository's browser simulator: a car-like rover with a LiDAR, driven by the rover network, with the safety stop and the 3-point-turn supervisor. It shows the inputs, the raw outputs and every neuron.</SecHead>
+      <div class="simwrap" id="simwrap">
+        <button class="btn pri simload" type="button" id="simload">Load the rover simulator</button>
+        <p class="small simnote">Loads a 64 KB page. Works best on a tablet or larger screen.</p>
+      </div>
+      <p class="small" style="margin-top:10px"><a href={u('/sim/rover_simulator.html')} target="_blank" rel="noopener">Open the simulator in its own tab ↗</a> · <a href={u('/docs/rover-simulator/')}>How it works and test results</a></p>
+    </section>
+  </div>
+</Base>
+
+<script>
+  import { infer, quantize, crc16, modelImage, selfTest, SIZES } from '../scripts/netsilcon.js';
+  import motor_fault from '../data/models/motor_fault.json';
+  import irrigation from '../data/models/irrigation.json';
+  import rover from '../data/models/rover.json';
+  import rover_v1 from '../data/models/rover_v1.json';
+
+  const MODELS = { motor_fault, irrigation, rover, rover_v1 };
+  const hex = (n) => ((n + 256) % 256).toString(16).toUpperCase().padStart(2, '0');
+  const $ = (id) => document.getElementById(id);
+  let m = MODELS.motor_fault, x = [64, 102, 74, 53], scen = 0, row = 0;
+
+  /* ---- self test ---- */
+  function runVerify() {
+    let pass = 0, total = 0;
+    for (const k in MODELS) { const r = selfTest(MODELS[k]); pass += r.pass; total += r.total; }
+    const per = selfTest(m);
+    $('v-result').textContent = `${per.pass} / ${per.total}`;
+    $('v-label').textContent = `golden vectors match for ${m.name}.json · all four files: ${pass} / ${total}`;
+  }
+  $('v-run').addEventListener('click', () => { $('v-result').textContent = '…'; setTimeout(runVerify, 60); });
+
+  /* ---- network svg ---- */
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = $('pgnet');
+  const X = [70, 166, 262, 358, 454, 550], gap = 44, cy = 165;
+  const pos = SIZES.map((n, l) => Array.from({ length: n }, (_, i) => [X[l], cy + (i - (n - 1) / 2) * gap]));
+  const edges = [], nodes = [];
+  const gE = document.createElementNS(NS, 'g'), gN = document.createElementNS(NS, 'g');
+  for (let l = 0; l < 5; l++) for (let j = 0; j < SIZES[l + 1]; j++) for (let i = 0; i < SIZES[l]; i++) {
+    const a = pos[l][i], b = pos[l + 1][j];
+    const e = document.createElementNS(NS, 'line');
+    e.setAttribute('x1', a[0]); e.setAttribute('y1', a[1]); e.setAttribute('x2', b[0]); e.setAttribute('y2', b[1]);
+    gE.append(e); edges.push({ e, l, i, j });
+  }
+  pos.forEach((col, l) => col.forEach(([cx, cyy], i) => {
+    const g = document.createElementNS(NS, 'g');
+    const r = document.createElementNS(NS, 'circle'); r.setAttribute('cx', cx); r.setAttribute('cy', cyy); r.setAttribute('r', 15); r.setAttribute('class', 'nr');
+    const f = document.createElementNS(NS, 'circle'); f.setAttribute('cx', cx); f.setAttribute('cy', cyy); f.setAttribute('r', 15); f.setAttribute('class', 'nf');
+    const t = document.createElementNS(NS, 'text'); t.setAttribute('x', cx); t.setAttribute('y', cyy + 4); t.setAttribute('text-anchor', 'middle'); t.setAttribute('class', 'nt');
+    g.append(r, f, t); gN.append(g); nodes.push({ f, t, l, i });
+  }));
+  const lab = document.createElementNS(NS, 'g'); lab.setAttribute('class', 'lab');
+  ['input', 'hidden 1', 'hidden 2', 'hidden 3', 'hidden 4', 'output'].forEach((s, l) => { const t = document.createElementNS(NS, 'text'); t.setAttribute('x', X[l]); t.setAttribute('y', 22); t.setAttribute('text-anchor', 'middle'); t.textContent = s; lab.append(t); });
+  svg.append(gE, gN, lab);
+
+  /* ---- sliders ---- */
+  function fmtReal(v, unit) { const d = Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2; return `${v.toFixed(d)} ${unit === 'C' ? '°C' : unit}`; }
+  function buildSliders() {
+    $('sliders').innerHTML = m.inputs.map((inp, k) => `
+      <div class="sl">
+        <label for="s${k}"><span class="xn">x${k}</span> ${inp.name.replace('_', ' ')} <span class="small">· full scale ${inp.range} ${inp.unit === 'C' ? '°C' : inp.unit}</span></label>
+        <div class="slrow"><input type="range" id="s${k}" min="0" max="127" step="1" value="${x[k]}" aria-describedby="r${k}"><output id="r${k}" class="num"></output></div>
+      </div>`).join('');
+    m.inputs.forEach((_, k) => $(`s${k}`).addEventListener('input', (e) => { x[k] = +e.target.value; update(); }));
+  }
+  function buildDemo() {
+    $('scen').innerHTML = m.demo.map((d, i) => `<option value="${i}">${d.title.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join('');
+    scen = 0; row = 0;
+  }
+  function applyRow() {
+    const d = m.demo[scen]; const r = d.rows[row];
+    x = r.map((v, k) => quantize(v, m.inputs[k].range));
+    m.inputs.forEach((_, k) => { $(`s${k}`).value = x[k]; });
+    $('scen-pos').textContent = `Step ${row + 1} of ${d.rows.length}: ${r.map((v, k) => fmtReal(+v, m.inputs[k].unit)).join(', ')}`;
+    update();
+  }
+  $('scen').addEventListener('change', (e) => { scen = +e.target.value; row = 0; applyRow(); });
+  $('step').addEventListener('click', () => { row = (row + 1) % m.demo[scen].rows.length; applyRow(); });
+
+  /* ---- update ---- */
+  function update() {
+    const { out, layers } = infer(m, x);
+    m.inputs.forEach((inp, k) => { $(`r${k}`).textContent = `${x[k]} · ${fmtReal((x[k] / 127) * inp.range, inp.unit)}`; });
+    nodes.forEach((n) => {
+      const v = layers[n.l][n.i];
+      const a = n.l === 5 ? Math.min(1, Math.abs(v) / 127) : v / 127;
+      n.f.style.fillOpacity = String(Math.max(0, Math.min(1, a)) * 0.9);
+      n.f.classList.toggle('neg', n.l === 5 && v < 0);
+      n.t.textContent = v;
+    });
+    let wi = 0; const offs = [0];
+    for (let l = 0; l < 5; l++) { wi += SIZES[l] * SIZES[l + 1]; offs.push(wi); }
+    edges.forEach((ed) => {
+      const w = m.weights[offs[ed.l] + ed.j * SIZES[ed.l] + ed.i];
+      const c = w * layers[ed.l][ed.i];
+      const s = Math.min(1, Math.abs(c) / 4000);
+      ed.e.setAttribute('class', c > 0 ? 'pos' : c < 0 ? 'neg' : 'zero');
+      ed.e.style.strokeOpacity = String(c === 0 ? 0.12 : 0.15 + 0.85 * s);
+      ed.e.style.strokeWidth = String(0.8 + 2.2 * s);
+    });
+    $('y0').textContent = out[0]; $('y1').textContent = out[1];
+    const reg = m.kind === 'regression';
+    if (reg) {
+      $('decision').textContent = '';
+      $('gauges').innerHTML = m.outputs.map((name, k) => {
+        const v = out[k] / 127; const pct = Math.abs(v) * 50;
+        return `<div class="gauge"><div class="gl"><span>${name}</span><span class="num">${v >= 0 ? '+' : ''}${v.toFixed(2)}</span></div>
+          <div class="gt"><i style="${v >= 0 ? `left:50%;width:${pct}%` : `left:${50 - pct}%;width:${pct}%`}"></i></div>
+          <div class="gs"><span>${k === 0 ? 'reverse' : 'left'}</span><span>0</span><span>${k === 0 ? 'forward' : 'right'}</span></div></div>`;
+      }).join('');
+    } else {
+      const dec = out[1] > out[0];
+      $('decision').innerHTML = `<span class="${dec ? 'on' : ''}">${m.outputs[dec ? 1 : 0]}</span><span class="small">${dec ? 'y1 > y0' : 'y1 ≤ y0'} · DOUT0 = ${dec ? 1 : 0}</span>`;
+      $('gauges').innerHTML = '';
+    }
+    const flags = out[1] > out[0] ? 1 : 0;
+    $('tx').textContent = ['A5', ...x.map(hex)].join(' ');
+    $('rx').textContent = ['5A', hex(out[0]), hex(out[1]), hex(flags), hex(15)].join(' ');
+  }
+
+  function selectModel(key) {
+    m = MODELS[key];
+    document.querySelectorAll('.models button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.m === key)));
+    $('m-meta').textContent = `${m.title} · ${m.kind === 'regression' ? 'regression: outputs read as y / 127' : `classifier: ${m.outputs[0]} / ${m.outputs[1]}`} · int8 ${m.kind === 'regression' ? 'action agreement' : 'accuracy'} ${(m.accuracy_int8 * 100).toFixed(1)} %`;
+    $('crc').textContent = crc16(modelImage(m)).toString(16).toUpperCase().padStart(4, '0');
+    buildSliders(); buildDemo(); applyRow(); runVerify();
+  }
+  document.querySelectorAll('.models button').forEach((b) => {
+    b.addEventListener('click', () => selectModel(b.dataset.m));
+    b.addEventListener('keydown', (e) => {
+      if (!['ArrowRight', 'ArrowLeft'].includes(e.key)) return;
+      const all = [...document.querySelectorAll('.models button')]; const i = all.indexOf(b);
+      const n = all[(i + (e.key === 'ArrowRight' ? 1 : all.length - 1)) % all.length]; n.focus(); n.click(); e.preventDefault();
+    });
+  });
+  selectModel('motor_fault');
+
+  /* ---- rover simulator: load on demand ---- */
+  const simwrap = $('simwrap');
+  function loadSim() {
+    if (simwrap.querySelector('iframe')) return;
+    const src = simwrap.dataset.src;
+    simwrap.innerHTML = `<iframe src="${src}" title="NetSilcon rover simulator" loading="lazy"></iframe>`;
+    simwrap.classList.add('loaded');
+  }
+  simwrap.dataset.src = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/sim/rover_simulator.html`;
+  $('simload').addEventListener('click', loadSim);
+  if (location.hash === '#rover') loadSim();
+</script>
+
+<style>
+  .verify { padding: 18px 20px; }
+  .vline { margin: 0 0 6px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .vline .num { font-size: 28px; font-weight: 500; color: var(--acc); }
+  .models { display: flex; flex-wrap: wrap; border: 1px solid var(--ink); width: fit-content; max-width: 100%; }
+  .models button { font: 600 15px var(--sans); background: var(--surface); color: var(--ink); border: 0; border-left: 1px solid var(--rule); padding: 0 18px; min-height: 46px; cursor: pointer; }
+  .models button:first-child { border-left: 0; }
+  .models button[aria-checked='true'] { background: var(--ink); color: var(--bg); }
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
+  .controls { grid-row: span 2; }
+  .out { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 24px; }
+  .out > .callout, .out > .decision, .out > #gauges { grid-column: 1; }
+  .out > .ys { grid-column: 1; }
+  .out > .bytes { grid-column: 2; grid-row: 1 / span 4; border-top: 0; padding-top: 0; }
+  .out > .crc { grid-column: 2; }
+  .controls { padding: 18px 20px; }
+  :global(.sl) { padding: 10px 0 12px; border-bottom: 1px solid var(--rule-2); }
+  :global(.sl label) { display: block; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  :global(.sl .xn) { font: 500 12px var(--mono); color: var(--acc); margin-right: 4px; }
+  :global(.slrow) { display: grid; grid-template-columns: minmax(0, 1fr) 9.5em; gap: 12px; align-items: center; }
+  :global(.slrow output) { font-size: 13px; text-align: right; white-space: nowrap; }
+  :global(.sl input[type=range]) { width: 100%; height: 44px; accent-color: var(--acc); margin: 0; background: transparent; }
+  .demo { padding-top: 14px; }
+  .demo .callout { display: block; margin-bottom: 6px; }
+  .demorow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .demorow select { font: 15px var(--sans); min-height: 46px; padding: 0 10px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); width: 100%; border-radius: 0; }
+  .demo .small { margin: 8px 0 0; min-height: 3em; }
+  .netfig :global(line.pos) { stroke: var(--acc); }
+  .netfig :global(line.neg) { stroke: var(--mut); }
+  .netfig :global(line.zero) { stroke: var(--rule); }
+  .netfig :global(.nr) { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+  .netfig :global(.nf) { fill: var(--acc); fill-opacity: 0; transition: fill-opacity .15s; }
+  .netfig :global(.nf.neg) { fill: var(--mut); }
+  .netfig :global(.nt) { font: 500 11px var(--mono); fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+  .netfig :global(.lab) { font: 11px var(--mono); fill: var(--mut); }
+  .out { padding: 18px 20px; }
+  .decision { display: grid; gap: 4px; margin-bottom: 12px; min-height: 3.2em; }
+  .decision:empty { display: none; }
+  .decision :global(span:first-child) { font: 700 clamp(26px, 2.6vw, 34px)/1.05 var(--head); }
+  .decision :global(span.on) { color: var(--acc); }
+  :global(.gauge) { margin-bottom: 14px; }
+  :global(.gl) { display: flex; justify-content: space-between; font-weight: 600; font-size: 15px; }
+  :global(.gt) { position: relative; height: 16px; background: linear-gradient(90deg, transparent calc(50% - .5px), var(--ink) calc(50% - .5px) calc(50% + .5px), transparent calc(50% + .5px)), var(--rule-2); margin: 6px 0 4px; }
+  :global(.gt i) { position: absolute; top: 3px; bottom: 3px; background: var(--acc); }
+  :global(.gs) { display: flex; justify-content: space-between; font: 11px var(--mono); color: var(--mut); }
+  .ys { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 14px; border-top: 1px solid var(--rule-2); padding-top: 12px; }
+  .ys dt { font: 12px var(--mono); color: var(--mut); }
+  .ys dd { margin: 0; font-size: 15px; }
+  .bytes { border-top: 1px solid var(--rule-2); padding-top: 12px; }
+  .bytes .callout { margin: 0 0 6px; }
+  .bytes p.num { margin: 0 0 6px; display: grid; gap: 2px; }
+  .bytes .dir { font-size: 11px; color: var(--mut); }
+  .bytes code { font-size: 14px; background: var(--rule-2); padding: 4px 6px; }
+  .crc { margin: 8px 0 0; }
+  .simwrap { border: 1px solid var(--ink); background: var(--surface); min-height: 220px; display: grid; place-items: center; align-content: center; gap: 10px; padding: 20px; text-align: center; }
+  .simwrap.loaded { padding: 0; display: block; height: min(86vh, 900px); min-height: 640px; }
+  .simwrap :global(iframe) { width: 100%; height: 100%; border: 0; display: block; }
+  .simnote { margin: 0; }
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .controls { grid-row: auto; order: 1; }
+    .netfig { order: -1; }
+  }
+  @media (max-width: 560px) {
+    .out { grid-template-columns: minmax(0, 1fr); }
+    .out > * { grid-column: 1 !important; grid-row: auto !important; }
+    .out > .bytes { border-top: 1px solid var(--rule-2); padding-top: 12px; }
+  }
+  @media (max-width: 720px) {
+    .models { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+    .models button { border-left: 0; border-top: 1px solid var(--rule); }
+    .models button:nth-child(2n) { border-left: 1px solid var(--rule); }
+    .models button:nth-child(-n+2) { border-top: 0; }
+    .netfig :global(.nt) { font-size: 14px; }
+    .netfig :global(.lab) { display: none; }
+  }
+</style>
