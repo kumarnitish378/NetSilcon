@@ -1,0 +1,46 @@
+---
+// NS6X4-Q24 pinout, QFN-24 top view, pin 1 top-left, numbered anticlockwise (datasheet Fig. 5-1).
+import { pins } from '../data/facts';
+const B0 = 170, B1 = 390, step = 30, first = B0 + 35; // body box and pin pitch
+const key = new Set(['nREADY', 'nFAULT', 'DOUT0', 'UART_RX', 'UART_TX']);
+const geo = pins.map((p) => {
+  const i = (p.n - 1) % 6, side = Math.floor((p.n - 1) / 6);
+  if (side === 0) { const y = first + i * step; return { ...p, px: B0 - 14, py: y - 5, pw: 14, ph: 10, tx: B0 - 22, ty: y + 4, anchor: 'end', nx: B0 + 10, ny: y + 4, na: 'start', rot: 0 }; }
+  if (side === 1) { const x = first + i * step; return { ...p, px: x - 5, py: B1, pw: 10, ph: 14, tx: x + 4, ty: B1 + 22, anchor: 'end', nx: x + 4, ny: B1 - 10, na: 'start', rot: -90 }; }
+  if (side === 2) { const y = B1 - 35 - i * step; return { ...p, px: B1, py: y - 5, pw: 14, ph: 10, tx: B1 + 22, ty: y + 4, anchor: 'start', nx: B1 - 10, ny: y + 4, na: 'end', rot: 0 }; }
+  const x = B1 - 35 - i * step; return { ...p, px: x - 5, py: B0 - 14, pw: 10, ph: 14, tx: x + 4, ty: B0 - 22, anchor: 'start', nx: x + 4, ny: B0 + 10, na: 'end', rot: -90 };
+});
+---
+<svg class="pinout" viewBox="0 0 560 560" role="img" aria-label="NS6X4-Q24 pinout, QFN-24 top view. Left side pins 1 to 6: VDD, VCORE, GND, CLKIN, CLKOUT, nRESET. Bottom pins 7 to 12: IFSEL, UART_RX, UART_TX, VDDIO, SPI_nCS, SPI_SCK. Right side pins 13 to 18 from bottom: SPI_MOSI, SPI_MISO, nREADY, nFAULT, DOUT0, DOUT1. Top pins 19 to 24 from right: START, nWP, GND, STATUS, TEST, NC. Exposed pad is GND.">
+  <rect class="body" x={B0} y={B0} width={B1 - B0} height={B1 - B0} />
+  <rect class="ep" x={B0 + 55} y={B0 + 55} width={B1 - B0 - 110} height={B1 - B0 - 110} />
+  <circle class="dotp" cx={B0 + 16} cy={B0 + 16} r="5" />
+  <text class="title" x="280" y="272" text-anchor="middle">NS6X4-Q24</text>
+  <text class="sub" x="280" y="292" text-anchor="middle">QFN-24 · 4 × 4 mm</text>
+  <text class="sub" x="280" y="308" text-anchor="middle">EP = GND (25)</text>
+  {geo.map((g) => (
+    <g class={key.has(g.name) ? 'pin key' : g.type === 'P' || g.type === 'G' ? 'pin pwr' : 'pin'}>
+      <rect x={g.px} y={g.py} width={g.pw} height={g.ph} />
+      {g.rot === 0
+        ? <text class="name" x={g.tx} y={g.ty} text-anchor={g.anchor}>{g.name}</text>
+        : <text class="name" x={g.tx} y={g.ty} text-anchor={g.anchor} transform={`rotate(-90 ${g.tx} ${g.ty})`}>{g.name}</text>}
+      {g.rot === 0
+        ? <text class="no" x={g.nx} y={g.ny} text-anchor={g.na}>{g.n}</text>
+        : <text class="no" x={g.nx} y={g.ny} text-anchor={g.na} transform={`rotate(-90 ${g.nx} ${g.ny})`}>{g.n}</text>}
+    </g>
+  ))}
+</svg>
+<style>
+  .pinout { display: block; width: 100%; height: auto; max-width: 560px; margin: 0 auto; }
+  .body { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .ep { fill: none; stroke: var(--rule); stroke-dasharray: 4 3; }
+  .dotp { fill: var(--ink); }
+  .title { font: 700 18px var(--head); fill: var(--ink); }
+  .sub { font: 11px var(--mono); fill: var(--mut); }
+  .pin rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
+  .pin .name { font: 500 12px var(--mono); fill: var(--ink); }
+  .pin .no { font: 10px var(--mono); fill: var(--mut); }
+  .pin.key rect { fill: var(--acc); stroke: var(--acc); }
+  .pin.key .name { fill: var(--acc); }
+  .pin.pwr .name { fill: var(--mut); }
+</style>

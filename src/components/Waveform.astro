@@ -1,0 +1,39 @@
+---
+// Timing diagram: clock, input valid at cycle 0, output valid at cycle 15. Traces draw once on load.
+const x0 = 92, x1 = 624, per = (x1 - x0) / 17;
+let clk = `M${x0} 55`;
+for (let i = 0; i < 17; i++) { const a = x0 + i * per; clk += `V25H${(a + per / 2).toFixed(1)}V55H${(a + per).toFixed(1)}`; }
+const e0 = x0, o0 = x0 + per * 15, o1 = x0 + per * 16;
+const gridV = Array.from({ length: 11 }, (_, i) => x0 + ((x1 - x0) * i) / 10);
+const gridH = Array.from({ length: 7 }, (_, j) => 10 + 30 * j);
+const ticks = [0, 5, 10, 15];
+---
+<svg class="wave" viewBox="0 0 640 236" role="img" aria-label="Timing diagram: the input is accepted on clock 0 and the answer is valid on clock 15, which is 0.556 microseconds at 27 MHz. The same 15 clocks on every inference.">
+  <g class="g">{gridV.map((x) => <line x1={x} y1="10" x2={x} y2="190" />)}{gridH.map((y) => <line x1={x0} y1={y} x2={x1} y2={y} />)}</g>
+  <g class="lbl"><text x="4" y="44">clk</text><text x="4" y="104">in_valid</text><text x="4" y="164">out_valid</text>
+    {ticks.map((i) => <text x={x0 + i * per + per / 2} y="20" text-anchor="middle" class="t">{i}</text>)}</g>
+  <path class="tr clk" d={clk} />
+  <path class="tr sig" d={`M${x0} 115H${e0 + 2}V85H${(x0 + per + 2).toFixed(1)}V115H${x1}`} />
+  <path class="tr sig late" d={`M${x0} 175H${(o0 + 2).toFixed(1)}V145H${(o1 + 2).toFixed(1)}V175H${x1}`} />
+  <g class="mk">
+    <line x1={e0 + 2} y1="70" x2={e0 + 2} y2="200" /><line x1={o0 + 2} y1="70" x2={o0 + 2} y2="200" />
+    <path d={`M${e0 + 6} 210H${o0 - 2}M${e0 + 6} 210l6 -4M${e0 + 6} 210l6 4M${o0 - 2} 210l-6 -4M${o0 - 2} 210l-6 4`} />
+    <text x={(e0 + o0) / 2} y="228" text-anchor="middle">Δt = 15 clk = 0.556 µs at 27 MHz</text>
+  </g>
+</svg>
+<style>
+  .wave { display: block; width: 100%; height: auto; }
+  .g line { stroke: var(--rule-2); stroke-width: 1; }
+  .lbl { font: 11px var(--mono); fill: var(--mut); }
+  .lbl .t { font-size: 9px; }
+  .tr { fill: none; stroke-dasharray: 2000; stroke-dashoffset: 0; }
+  .clk { stroke: var(--mut); stroke-width: 1.4; }
+  .sig { stroke: var(--acc); stroke-width: 2; }
+  .mk line, .mk path { stroke: var(--ink); stroke-width: 1.2; fill: none; }
+  .mk line { stroke-dasharray: 3 3; }
+  .mk text { font: 500 12px var(--mono); fill: var(--ink); }
+  @media (prefers-reduced-motion: no-preference) {
+    .tr { stroke-dashoffset: 2000; animation: draw 2.2s ease-out forwards; }
+    .late { animation-delay: .5s; }
+  }
+</style>

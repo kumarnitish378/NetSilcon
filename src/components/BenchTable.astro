@@ -1,0 +1,34 @@
+---
+import { bench, logPos, LOG_TICKS } from '../data/facts';
+interface Props { full?: boolean }
+const { full = false } = Astro.props;
+---
+<div class="tbl-wrap">
+  <table class="stack bench grow">
+    <thead><tr>
+      <th>Hardware</th><th class="r">Latency</th>{full && <th class="r">Power</th>}<th class="r">Energy / inference</th>
+      <th class="barcol">Energy, log scale<div class="logaxis" aria-hidden="true">{LOG_TICKS.map((t, i) => <span>{i % 2 ? '' : t}</span>)}</div></th><th>How we know</th>
+    </tr></thead>
+    <tbody>
+      {bench.map((r) => (
+        <tr class={r.us ? 'us' : ''}>
+          <td data-l="Hardware"><b>{r.name}</b><br /><span class="small">{r.detail}</span></td>
+          <td data-l="Latency" class={r.lo ? 'r num nw' : 'small'}>{r.latency}</td>
+          {full && <td data-l="Power" class="r num nw">{r.power}</td>}
+          <td data-l="Energy" class={r.lo ? 'r num nw' : 'small'}>{r.energy}</td>
+          <td data-l="Log scale" class="barcol">
+            {r.lo ? <div class="logbar"><i class={r.hi === null ? 'open' : ''} style={`left:${logPos(r.lo).toFixed(1)}%;width:${(r.hi === null ? 100 - logPos(r.lo) : Math.max(logPos(r.hi) - logPos(r.lo), 0.8)).toFixed(1)}%`}></i></div>
+              : <span class="small">no figure</span>}
+          </td>
+          <td data-l="How we know" class="small">{r.how}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+<style>
+  .bench td { vertical-align: middle; }
+  .barcol { width: 26%; }
+  th.barcol .logaxis { font-size: 10px; padding-top: 4px; }
+  @media (max-width: 640px) { .bench td.barcol { width: auto; } }
+</style>

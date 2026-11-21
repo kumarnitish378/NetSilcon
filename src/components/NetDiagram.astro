@@ -1,0 +1,49 @@
+---
+// The 4 → 6 → 6 → 6 → 6 → 2 network drawn as a schematic, with signal pulses that travel layer by layer.
+// Geometry is computed at build time; the animation is CSS only and stops under prefers-reduced-motion.
+interface Props { annotate?: boolean; label?: string }
+const { annotate = true, label = 'The NetSilcon-6x4 network: 4 inputs, four hidden layers of 6 neurons with ReLU, and 2 outputs, fully connected by 144 weights. Signal pulses travel from the inputs to the outputs.' } = Astro.props;
+const L = [4, 6, 6, 6, 6, 2];
+const X = [80, 172, 264, 356, 448, 540];
+const gap = 44, cy = 196;
+const pos = L.map((n, l) => Array.from({ length: n }, (_, i) => [X[l], cy + (i - (n - 1) / 2) * gap]));
+const edges: { x1: number; y1: number; x2: number; y2: number; l: number; pulse: boolean; d: number }[] = [];
+let k = 0;
+for (let l = 0; l < 5; l++)
+  for (const a of pos[l])
+    for (const b of pos[l + 1]) {
+      edges.push({ x1: a[0], y1: a[1], x2: b[0], y2: b[1], l, pulse: (k * 7) % 5 < 2, d: +(l * 0.42 + ((k * 13) % 10) * 0.03).toFixed(2) });
+      k++;
+    }
+---
+<svg class="net" viewBox="0 0 620 368" role="img" aria-label={label}>
+  <g class="e">{edges.map((e) => <line x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} />)}</g>
+  <g class="p">{edges.filter((e) => e.pulse).map((e) => <line x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} pathLength="100" style={`animation-delay:${e.d}s`} />)}</g>
+  <g class="n">
+    {pos.map((col, l) => col.map(([x, y]) => (
+      <g><circle class="ring" cx={x} cy={y} r="9" /><circle class="dot" cx={x} cy={y} r="4.5" style={`animation-delay:${(l * 0.42 + 0.25).toFixed(2)}s`} /></g>
+    )))}
+  </g>
+  {annotate && (
+    <g class="a">
+      {['x0', 'x1', 'x2', 'x3'].map((t, i) => <text x={pos[0][i][0] - 20} y={pos[0][i][1] + 4} text-anchor="end">{t}</text>)}
+      {['y0', 'y1'].map((t, i) => <text x={pos[5][i][0] + 20} y={pos[5][i][1] + 4}>{t}</text>)}
+      <path d={`M80 ${cy - 82}V44`} /><text class="call" x="80" y="36" text-anchor="middle">4 in · int8</text>
+      <path d={`M172 56H448M310 56V${cy - 126}`} /><text class="call" x="310" y="36" text-anchor="middle">4 × 6 hidden · ReLU · shift s</text>
+      <path d={`M540 ${cy - 38}V44`} /><text class="call" x="540" y="36" text-anchor="middle">2 out</text>
+      <text x="310" y="352" text-anchor="middle" class="eq">y = clamp(ReLU((Σ w·x + b + 2^(s−1)) &gt;&gt; s))</text>
+    </g>
+  )}
+</svg>
+<style>
+  .net { display: block; width: 100%; height: auto; }
+  .e line { stroke: var(--rule); stroke-width: 1; }
+  .p line { stroke: var(--acc); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 7 100; stroke-dashoffset: 7; animation: flow 2.8s linear infinite; }
+  .ring { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .dot { fill: var(--acc); fill-opacity: 0; animation: lit 2.8s ease-in-out infinite; }
+  .a { font: 11px var(--mono); fill: var(--mut); }
+  .a path { stroke: var(--mut); stroke-width: 1; fill: none; }
+  .a .eq { font-size: 12px; }
+  @media (max-width: 600px) { .a path, .a .call, .a .eq { display: none; } .a text { font-size: 17px; } }
+  @media (prefers-reduced-motion: reduce) { .p { display: none; } .dot { fill-opacity: 1; } }
+</style>

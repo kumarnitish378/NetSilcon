@@ -1,0 +1,7 @@
+---
+import { BASIS_LABEL, type Basis } from '../data/facts';
+interface Props { b: Basis }
+const { b } = Astro.props;
+---
+<abbr class={`tag ${b}`} title={BASIS_LABEL[b]}>{b}<span class="sr"> ({BASIS_LABEL[b]})</span></abbr>
+<style>abbr { text-decoration: none; }</style>

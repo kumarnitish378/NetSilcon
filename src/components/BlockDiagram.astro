@@ -1,0 +1,50 @@
+---
+// Simplified block diagram. Solid = built and tested on the FPGA reference. Dashed amber = design target.
+const boxes = [
+  { x: 20, y: 40, w: 160, h: 96, t: 'Host interface', l: ['UART 115200 8N1', 'SPI mode 0 (T)'] },
+  { x: 214, y: 40, w: 160, h: 96, t: 'Command decoder', l: ['A5 infer', 'C3 load · C5 info'] },
+  { x: 408, y: 40, w: 186, h: 96, t: 'Neural engine', l: ['4→6→6→6→6→2', '72 mult · 15 cycles'], acc: true },
+  { x: 628, y: 40, w: 132, h: 96, t: 'Output logic', l: ['DOUT0 decision', 'nREADY · nFAULT'] },
+  { x: 214, y: 200, w: 160, h: 96, t: 'Model loader', l: ['staging 201 B', 'CRC-16 · atomic swap'] },
+  { x: 408, y: 200, w: 186, h: 96, t: 'Model registers', l: ['144 w · 26 b', '5 shifts'] },
+  { x: 20, y: 200, w: 160, h: 96, t: 'Model flash', l: ['load at power-up', 'with CRC check'], tgt: true },
+];
+---
+<svg class="blk" viewBox="0 0 780 350" role="img" aria-label="Block diagram. The host interface (UART today, SPI planned) feeds the command decoder. Infer commands go to the neural engine, which drives the output logic: decision bit DOUT0, nREADY and nFAULT. Load commands go to the model loader, which checks the CRC in a staging buffer and swaps the model registers in one step. Model flash, loaded at power-up, is a design target.">
+  <defs><marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 8 4 0 8Z" class="ahp" /></marker></defs>
+  {boxes.map((b) => (
+    <g class={b.tgt ? 'b tgt' : b.acc ? 'b acc' : 'b'}>
+      <rect x={b.x} y={b.y} width={b.w} height={b.h} />
+      <text class="t" x={b.x + 12} y={b.y + 26}>{b.t}</text>
+      {b.l.map((s, i) => <text class="s" x={b.x + 12} y={b.y + 52 + i * 20}>{s}</text>)}
+    </g>
+  ))}
+  <g class="w">
+    <path d="M180 88H210" marker-end="url(#ah)" />
+    <path d="M374 88H404" marker-end="url(#ah)" />
+    <path d="M594 88H624" marker-end="url(#ah)" />
+    <path d="M294 136V196" marker-end="url(#ah)" />
+    <path d="M374 248H404" marker-end="url(#ah)" />
+    <path d="M501 200V140" marker-end="url(#ah)" />
+    <path class="tgtw" d="M180 248H210" marker-end="url(#ah)" />
+  </g>
+  <g class="lg">
+    <rect x="20" y="322" width="22" height="12" class="ls" /><text x="50" y="332">built and tested on the FPGA reference</text>
+    <rect x="360" y="322" width="22" height="12" class="lt" /><text x="390" y="332">design target, not built yet</text>
+  </g>
+</svg>
+<style>
+  .blk { display: block; width: 100%; height: auto; }
+  .b rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+  .b.acc rect { fill: var(--acc-bg); stroke: var(--acc); stroke-width: 1.8; }
+  .b.tgt rect { fill: var(--tgt-bg); stroke: var(--tgt-line); stroke-dasharray: 5 4; }
+  .t { font: 700 15px var(--head); fill: var(--ink); }
+  .s { font: 12px var(--mono); fill: var(--mut); }
+  .b.tgt .s, .b.tgt .t { fill: var(--tgt); }
+  .w path { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+  .w .tgtw { stroke: var(--tgt-line); stroke-dasharray: 4 3; }
+  .ahp { fill: var(--ink); }
+  .lg { font: 12px var(--mono); fill: var(--mut); }
+  .ls { fill: var(--surface); stroke: var(--ink); }
+  .lt { fill: var(--tgt-bg); stroke: var(--tgt-line); stroke-dasharray: 4 3; }
+</style>

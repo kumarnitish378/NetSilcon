@@ -1,0 +1,131 @@
+---
+import '../styles/global.css';
+import { SITE, repo } from '../config';
+import Logo from '../components/Logo.astro';
+
+interface Props { title?: string; description?: string; wide?: boolean; noGrid?: boolean }
+const { title, description = SITE.description, noGrid = false } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const fullTitle = title ? `${title} · NetSilcon` : 'NetSilcon · open-source neural-network hardware';
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(u('/og.png'), Astro.site);
+const path = Astro.url.pathname.replace(base, '') || '/';
+
+const primary = [
+  { href: '/technology/', label: 'Technology' },
+  { href: '/netsilcon-6x4/', label: 'NetSilcon-6x4' },
+  { href: '/benchmarks/', label: 'Benchmarks' },
+  { href: '/studio/', label: 'Studio' },
+  { href: '/docs/', label: 'Docs' },
+  { href: '/playground/', label: 'Playground' },
+];
+const secondary = [
+  { href: '/applications/', label: 'Applications' },
+  { href: '/roadmap/', label: 'Roadmap' },
+  { href: '/news/', label: 'News' },
+  { href: '/downloads/', label: 'Downloads' },
+  { href: '/about/', label: 'About & contact' },
+];
+const current = (href: string) => (href === '/' ? path === '/' : path.startsWith(href.replace(/\/$/, ''))) ? 'page' : undefined;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{fullTitle}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <link rel="icon" href={u('/favicon.svg')} type="image/svg+xml" />
+  <link rel="sitemap" href={u('/sitemap-index.xml')} />
+  <meta name="theme-color" content="#F2F5F9" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="NetSilcon" />
+  <meta property="og:title" content={fullTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="author" content={SITE.author} />
+  <script is:inline>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('ns-theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+  <slot name="head" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-head" id="site-head">
+    <div class="wrap">
+      <a class="brand" href={u('/')} aria-label="NetSilcon home"><Logo />NetSilcon</a>
+      <nav class="nav" aria-label="Primary">
+        {primary.map((l) => <a href={u(l.href)} aria-current={current(l.href)}>{l.label}</a>)}
+      </nav>
+      <button class="iconbtn theme-btn" type="button" id="theme-btn" aria-label="Switch between light and dark theme" title="Light / dark">
+        <svg class="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></svg>
+        <svg class="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
+      </button>
+      <button class="iconbtn menu-btn" type="button" id="menu-btn" aria-expanded="false" aria-controls="mobile-nav" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+      </button>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="All pages">
+      <ul>
+        <li><a href={u('/')} aria-current={current('/')}>Home</a></li>
+        {[...primary, ...secondary].map((l) => <li><a href={u(l.href)} aria-current={current(l.href)}>{l.label}</a></li>)}
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main" data-pagefind-body>
+    {!noGrid && <div class="gridlines" aria-hidden="true"></div>}
+    <slot />
+  </main>
+
+  <footer class="site-foot">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <a class="brand" href={u('/')} style="margin:0 0 10px"><Logo />NetSilcon</a>
+          <p style="max-width:40ch">Open-source neural-network hardware. A fixed network shape with loadable numbers. A personal project by {SITE.author}.</p>
+        </div>
+        <div><h2>Product</h2><ul>
+          <li><a href={u('/technology/')}>Technology</a></li>
+          <li><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4</a></li>
+          <li><a href={u('/benchmarks/')}>Benchmarks</a></li>
+          <li><a href={u('/applications/')}>Applications</a></li>
+          <li><a href={u('/roadmap/')}>Roadmap</a></li>
+        </ul></div>
+        <div><h2>Build</h2><ul>
+          <li><a href={u('/docs/')}>Docs</a></li>
+          <li><a href={u('/studio/')}>NetSilcon-Studio</a></li>
+          <li><a href={u('/playground/')}>Playground</a></li>
+          <li><a href={u('/downloads/')}>Downloads</a></li>
+          <li><a href={SITE.githubUrl} rel="noopener">GitHub</a></li>
+        </ul></div>
+        <div><h2>Project</h2><ul>
+          <li><a href={u('/news/')}>News</a></li>
+          <li><a href={u('/about/')}>About & contact</a></li>
+          <li><a href={u('/files/NetSilcon-6x4_Datasheet.pdf')}>Datasheet (PDF)</a></li>
+          <li><a href={repo('LICENSE')} rel="noopener">Apache-2.0 licence</a></li>
+        </ul></div>
+      </div>
+      <div class="foot-base"><span>© 2026 {SITE.author} · Apache-2.0</span><span>M measured · E estimated · T target</span></div>
+    </div>
+  </footer>
+
+  <script>
+    import { initSite } from '../scripts/site.js';
+    initSite();
+  </script>
+</body>
+</html>

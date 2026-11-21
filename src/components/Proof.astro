@@ -1,0 +1,13 @@
+---
+import { proof } from '../data/facts';
+import Tag from './Tag.astro';
+const fmt = (n: number, sep?: boolean) => (sep ? n.toLocaleString('en-US') : String(n));
+---
+<div class="cols cols-4 proof">
+  {proof.map((p) => (
+    <div>
+      <div class="v"><span class="cu" data-to={p.value} data-sep={p.sep ? '1' : '0'}>{fmt(p.value, p.sep)}</span>{p.unit && <small>{p.unit}</small>}</div>
+      <div class="k">{p.label}<Tag b={p.basis} /></div>
+    </div>
+  ))}
+</div>
