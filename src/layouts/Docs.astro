@@ -21,8 +21,10 @@ const next = i >= 0 && i < docs.length - 1 ? docs[i + 1] : null;
           <noscript><p class="small">Search needs JavaScript. Use the list below.</p></noscript>
         </div>
       </div>
+      <details class="docnav" id="docnav" open>
+      <summary class="dnsum">Docs menu</summary>
       <nav>
-        <p class="callout">Docs</p>
+        <p class="callout navhd">Docs</p>
         <ol>
           <li><a href={u('/docs/')} aria-current={!slug ? 'page' : undefined}>Overview</a></li>
           {docs.map((d) => <li><a href={u(`/docs/${d.id}/`)} aria-current={d.id === slug ? 'page' : undefined}>{d.data.title}</a></li>)}
@@ -34,6 +36,7 @@ const next = i >= 0 && i < docs.length - 1 ? docs[i + 1] : null;
           <li><a href={SITE.githubUrl} rel="noopener">GitHub</a></li>
         </ol>
       </nav>
+      </details>
     </aside>
     <article class="doc">
       <header>
@@ -51,6 +54,8 @@ const next = i >= 0 && i < docs.length - 1 ? docs[i + 1] : null;
     </article>
   </div>
   <script>
+    const dn = document.getElementById('docnav');
+    if (dn && matchMedia('(max-width: 900px)').matches) dn.removeAttribute('open');
     const el = document.getElementById('docsearch');
     if (el) {
       const base = el.dataset.base || '';
@@ -58,7 +63,7 @@ const next = i >= 0 && i < docs.length - 1 ? docs[i + 1] : null;
       s.src = `${base}/pagefind/pagefind-ui.js`;
       s.onload = () => {
         // @ts-ignore
-        new window.PagefindUI({ element: '#docsearch', showSubResults: true, showImages: false, resetStyles: false, translations: { placeholder: 'Search docs and pages' } });
+        new window.PagefindUI({ element: '#docsearch', showSubResults: true, showImages: false, resetStyles: false, translations: { placeholder: 'Search' } });
       };
       s.onerror = () => { el.innerHTML = '<p class="small">Search is built with the site (npm run build).</p>'; };
       document.head.appendChild(s);
@@ -74,6 +79,8 @@ const next = i >= 0 && i < docs.length - 1 ? docs[i + 1] : null;
   .side li a[aria-current='page'] { color: var(--ink); border-left-color: var(--acc); font-weight: 600; }
   .side .callout { margin: 0 0 6px; display: block; }
   .search { margin-bottom: 24px; }
+  .docnav > summary { display: none; }
+  :global(#docsearch input::placeholder) { color: var(--mut); opacity: 1; }
   .doc { max-width: 800px; padding-bottom: 24px; position: relative; background: var(--bg); }
   .doc header { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 24px; }
   .doc .crumb { font: 500 13px var(--mono); color: var(--mut); }
@@ -87,6 +94,13 @@ const next = i >= 0 && i < docs.length - 1 ? docs[i + 1] : null;
     .docs { grid-template-columns: minmax(0, 1fr); }
     .side { position: static; max-height: none; overflow: visible; border-bottom: 2px solid var(--ink); }
     .side nav ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+    .search { margin-bottom: 12px; }
+    .docnav > summary { display: flex; align-items: center; min-height: 48px; cursor: pointer; border-top: 1px solid var(--ink); font: 500 14px var(--mono); color: var(--ink); list-style: none; }
+    .docnav > summary::-webkit-details-marker { display: none; }
+    .docnav > summary::after { content: '+'; margin-left: auto; font-size: 18px; }
+    .docnav[open] > summary::after { content: '−'; }
+    .docnav .navhd { display: none; }
+    .side { padding-bottom: 8px; }
   }
   @media (max-width: 480px) { .side nav ol { grid-template-columns: minmax(0, 1fr); } }
   :global(#docsearch) {
