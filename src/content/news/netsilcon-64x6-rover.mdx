@@ -1,5 +1,5 @@
 ---
-title: "130× bigger, same board: NetSilcon-64x6 drives a rover"
+title: "135× bigger, same board: NetSilcon-64x6 drives a rover"
 description: "NetSilcon-64x6 runs a 22,528-weight int8 network on the Tang Nano 20K in 448 clocks, and its first trained model made 19,200 driving decisions with 0 mismatches."
 date: 2026-11-22
 order: 5
@@ -9,7 +9,7 @@ The first NetSilcon engine was deliberately tiny: 4 inputs, 144 weights, an answ
 
 Today the answer is on the same small Tang Nano 20K board: **NetSilcon-64x6**.
 
-- **16 inputs → six layers of 64 neurons → 16 outputs**: 22,528 int8 weights, about 130 times more parameters
+- **16 inputs → six layers of 64 neurons → 16 outputs**: 22,928 parameters (22,528 int8 weights + 400 biases), about 135 times as many as NetSilcon-6x4
 - **448 clock cycles per inference**, every time, measured with a hardware counter
 - **3,200 test vectors** on the FPGA, bit for bit equal to the Python model
 - **31× fewer clock cycles** than a laptop CPU running the same network in optimised C
