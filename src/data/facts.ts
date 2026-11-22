@@ -58,6 +58,7 @@ export const specGroups: { title: string; rows: Spec[] }[] = [
       { k: 'Neurons', v: '26', basis: 'M' },
       { k: 'Weights', v: '144 × int8', basis: 'M' },
       { k: 'Biases', v: '26 × int16', basis: 'M' },
+      { k: 'Parameters (total)', v: '170 (144 weights + 26 biases), plus 5 layer shifts', basis: 'M' },
       { k: 'Layer shifts', v: '5, each 0…15', basis: 'M' },
       { k: 'Accumulator', v: '20-bit signed, cannot overflow', basis: 'M' },
       { k: 'Multipliers', v: '72, time-shared over 2 phases', basis: 'M' },
@@ -159,9 +160,9 @@ export const roadmap = [
 
 // Applications. Model files exist for the first three; the others are example input sets from datasheet Table 12-1.
 export const applications = [
-  { id: 'motor', icon: 'motor', title: 'ESC / motor fault detection', inputs: ['Motor current (20 A FS)', 'Supply voltage (30 V FS)', 'Speed (6 000 rpm FS)', 'Temperature (120 °C FS)'], decides: 'HEALTHY or FAULT. DOUT0 can disable the gate driver directly.', status: 'Model file: motor_fault.json · 94.5 % int8 accuracy · 576/576 bit-exact', model: true },
-  { id: 'irrigation', icon: 'drop', title: 'Irrigation controller', inputs: ['Soil moisture', 'Air temperature', 'Air humidity', 'Sunlight'], decides: 'SKIP or WATER now.', status: 'Model file: irrigation.json · 97.4 % int8 accuracy · 576/576 bit-exact', model: true },
-  { id: 'rover', icon: 'rover', title: 'Robot obstacle decisions', inputs: ['Range front-left', 'Range front-right', 'Range rear-left', 'Range rear-right'], decides: 'Speed and steering, each −1…+1.', status: 'Model file: rover.json (v2) · 9,600 HIL decisions, 0 mismatches. NetSilcon-64x6 version with 16 LiDAR sectors: 19,200 HIL decisions, 0 mismatches', model: true },
+  { id: 'motor', icon: 'motor', title: 'ESC / motor fault detection', inputs: ['Motor current (20 A FS)', 'Supply voltage (30 V FS)', 'Speed (6 000 rpm FS)', 'Temperature (120 °C FS)'], decides: 'HEALTHY or FAULT. DOUT0 can disable the gate driver directly.', status: 'Model file: motor_fault.json · NetSilcon-6x4, 170 parameters · 94.5 % int8 accuracy · 576/576 bit-exact', model: true },
+  { id: 'irrigation', icon: 'drop', title: 'Irrigation controller', inputs: ['Soil moisture', 'Air temperature', 'Air humidity', 'Sunlight'], decides: 'SKIP or WATER now.', status: 'Model file: irrigation.json · NetSilcon-6x4, 170 parameters · 97.4 % int8 accuracy · 576/576 bit-exact', model: true },
+  { id: 'rover', icon: 'rover', title: 'Robot obstacle decisions', inputs: ['Range front-left', 'Range front-right', 'Range rear-left', 'Range rear-right'], decides: 'Speed and steering, each −1…+1.', status: 'Model file: rover.json (v2) · NetSilcon-6x4, 170 parameters · 9,600 HIL decisions, 0 mismatches. NetSilcon-64x6 version with 16 LiDAR sectors, 22,928 parameters: 19,200 HIL decisions, 0 mismatches', model: true },
   { id: 'bms', icon: 'battery', title: 'BMS cell anomaly', inputs: ['Cell voltage deviation', 'dV/dt', 'Cell temperature', 'Temperature rise rate'], decides: 'Normal or ANOMALY, as an early warning.', status: 'Example input set · train on your own data', model: false },
   { id: 'pump', icon: 'pump', title: 'Pump cavitation and dry run', inputs: ['Motor current', 'Current ripple', 'Outlet pressure', 'Vibration RMS'], decides: 'Normal or CAVITATION.', status: 'Example input set · train on your own data', model: false },
   { id: 'fan', icon: 'fan', title: 'Fan and spindle health', inputs: ['Vibration RMS', 'Vibration peak', 'Speed', 'Temperature'], decides: 'OK or MAINTENANCE NEEDED.', status: 'Example input set · train on your own data', model: false },
@@ -175,7 +176,8 @@ export const applications = [
 /** The model family, for comparison tables */
 export const family = [
   { k: 'Network', a: '4 → 6 → 6 → 6 → 6 → 2', b: '16 → 64 → 64 → 64 → 64 → 64 → 64 → 16' },
-  { k: 'Parameters', a: '144 weights, 26 biases, 5 shifts', b: '22,528 weights, 400 biases, 7 shifts' },
+  { k: 'Parameters (total)', a: '170 = 144 weights + 26 biases', b: '22,928 = 22,528 weights + 400 biases' },
+  { k: 'Layer shifts', a: '5', b: '7' },
   { k: 'Model upload', a: '201 bytes, CRC-16, 31 ms', b: '23,335 bytes, CRC-32, 2.04 s' },
   { k: 'Weights live in', a: 'registers', b: '32 block RAMs, two banks' },
   { k: 'Multipliers', a: '72, two phases', b: '64 MAC lanes (DSP 16 / 24)' },
@@ -200,6 +202,7 @@ export const specGroups64: { title: string; rows: Spec[] }[] = [
       { k: 'Activation', v: 'ReLU in the 6 hidden layers', basis: 'M' },
       { k: 'Weights', v: '22,528 × int8', basis: 'M' },
       { k: 'Biases', v: '400 × int16', basis: 'M' },
+      { k: 'Parameters (total)', v: '22,928 (22,528 weights + 400 biases), plus 7 layer shifts', basis: 'M' },
       { k: 'Layer shifts', v: '7, each 0…23, round half up', basis: 'M' },
       { k: 'Accumulator', v: '24-bit signed', basis: 'M' },
       { k: 'Compute', v: '64 MAC lanes, one input broadcast per clock', basis: 'M' },
@@ -255,6 +258,7 @@ export const rover64 = {
     { who: 'NetSilcon-6x4 rover v2 + supervisor', set: '40 new random worlds', crash: '0 / 40', stuck: '0 / 40', dist: '33.3 m' },
   ],
   hil: [
+    { k: 'Model', v: '22,928 parameters (22,528 weights + 400 biases), 7 shifts, 23,335-byte image' },
     { k: 'FPGA inferences', v: '19,200 (8 drives × 2,400 steps)' },
     { k: 'Mismatches with the Python model', v: '0' },
     { k: 'Chip latency', v: '448 clocks on every step' },

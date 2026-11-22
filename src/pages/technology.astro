@@ -173,7 +173,7 @@ const eqEx2 = tex(String.raw`y = (1466 + 2^{7}) \gg 8 = 1594 \gg 8 = 6`);
       <div class="cols cols-3">
         <div><h3>Speed you can predict</h3><p class="mut">No instruction fetch means the same 15 clocks every time. A motor drive or a safety loop can plan around that.</p></div>
         <div><h3>The cost of flexibility, measured</h3><p class="mut">With the weights fixed as constants, the design used 21 % of the FPGA's logic. With weights, biases and shifts loadable, it uses 49 %. That difference is the price of “many jobs” instead of one. <Tag b="M" /></p></div>
-        <div><h3>An honest limit</h3><p class="mut">170 parameters is deliberately small. It suits sensor-level decisions, not vision or language. The larger <a href={u('/netsilcon-64x6/')}>NetSilcon-64x6</a> (16 → 64×6 → 16, 22,528 weights) now runs on the same board.</p></div>
+        <div><h3>An honest limit</h3><p class="mut">170 parameters is deliberately small. It suits sensor-level decisions, not vision or language. The larger <a href={u('/netsilcon-64x6/')}>NetSilcon-64x6</a> (16 → 64×6 → 16, 22,928 parameters) now runs on the same board.</p></div>
       </div>
       <p class="more"><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4 specifications →</a> &nbsp; <a href={u('/docs/model-image/')}>Model image format →</a> &nbsp; <a href={u('/neural-network-on-fpga/')}>Neural network on FPGA: the full guide →</a></p>
     </section>

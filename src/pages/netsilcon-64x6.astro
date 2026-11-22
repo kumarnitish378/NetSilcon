@@ -9,7 +9,7 @@ import { SITE, repo, repoTree, M64X6, useCaseUrl } from '../config';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 const faq = [
-  { q: 'How big is the NetSilcon-64x6 network?', a: '16 inputs, six hidden layers of 64 neurons and 16 outputs: 22,528 int8 weights, 400 int16 biases and 7 layer shifts. The whole model is a 23,335-byte image with a CRC-32.' },
+  { q: 'How big is the NetSilcon-64x6 network?', a: '16 inputs, six hidden layers of 64 neurons and 16 outputs: 22,928 parameters (22,528 int8 weights and 400 int16 biases) plus 7 layer shifts. The whole model is a 23,335-byte image with a CRC-32.' },
   { q: 'How fast is one inference?', a: '448 clock cycles, every time, measured with a hardware counter on the Tang Nano 20K. At 27 MHz that is 16.6 µs. A laptop CPU needs about 14,100 cycles for the same bit-exact network, so the FPGA engine needs 31 times fewer cycles.' },
   { q: 'Can I load my own model?', a: 'Yes. Any network of this shape loads over UART in about 2 seconds. The image goes into the inactive weight bank and is only switched in after the CRC-32 checks out, so a damaged upload never touches the running model.' },
   { q: 'Is the hardware result exactly the same as the Python model?', a: 'Yes. 3,200 test vectors on the FPGA and 19,200 hardware-in-the-loop decisions matched the Python int8 model bit for bit.' },
@@ -30,7 +30,7 @@ const faq = [
       <div>
         <span class="crumb">Product · NetSilcon-64x6</span>
         <h1>NetSilcon-64x6</h1>
-        <p class="lede">The bigger engine. 16 inputs, six hidden layers of 64 neurons, 16 outputs: 22,528 weights you can reload over a serial cable. One answer every 448 clock cycles, bit for bit the same as the Python model.</p>
+        <p class="lede">The bigger engine. 16 inputs, six hidden layers of 64 neurons, 16 outputs: 22,528 weights and 400 biases, 22,928 parameters in all, that you can reload over a serial cable. One answer every 448 clock cycles, bit for bit the same as the Python model.</p>
         <div class="btns" style="margin-top:24px">
           <a class="btn pri" href={u('/files/NetSilcon-64x6_Datasheet.pdf')} download>Download the datasheet (PDF, 12 pages)</a>
           <a class="btn" href={repoTree(M64X6)} rel="noopener">Code and logs on GitHub</a>
