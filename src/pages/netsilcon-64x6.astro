@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import SecHead from '../components/SecHead.astro';
+import BoardPhotos from '../components/BoardPhotos.astro';
 import Proof from '../components/Proof.astro';
 import LaneDiagram from '../components/LaneDiagram.astro';
 import Tag from '../components/Tag.astro';
@@ -47,6 +48,10 @@ const faq = [
 
     <Proof items={proof64} />
     <p class="small proofnote">Measured on the Tang Nano 20K (Gowin GW2AR-18) at 27 MHz. Every number links back to a log file in the repository.</p>
+
+    <section class="sec" aria-label="The board">
+      <BoardPhotos which={['board_usb_leds','board_top_leds']} caption="NetSilcon-64x6 runs on this board: Tang Nano 20K, Gowin GW2AR-18 FPGA" />
+    </section>
 
     <section class="sec" aria-labelledby="how">
       <SecHead no="§1 How it computes" title="One input in, 64 neurons at once." id="how">Each clock, one input value goes to all 64 lanes. Every lane is one neuron: it multiplies the value by its own weight and adds it up. When a layer is done, one shared requantizer turns the 64 sums into the next layer's inputs.</SecHead>

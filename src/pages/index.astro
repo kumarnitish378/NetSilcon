@@ -6,6 +6,7 @@ import SecHead from '../components/SecHead.astro';
 import BenchTable from '../components/BenchTable.astro';
 import Icon from '../components/Icon.astro';
 import Tag from '../components/Tag.astro';
+import BoardPhotos from '../components/BoardPhotos.astro';
 import { applications, roadmap, family } from '../data/facts';
 import { SITE, useCaseUrl } from '../config';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -33,6 +34,10 @@ const u = (p: string) => `${base}${p}`;
 
     <Proof />
     <p class="small proofnote">Measured on the FPGA reference implementation: Sipeed Tang Nano 20K (Gowin GW2AR-18) at 27 MHz. Raw logs are in the repository.</p>
+
+    <section class="sec" aria-label="The real board">
+      <BoardPhotos />
+    </section>
 
     <section class="sec" aria-labelledby="how">
       <SecHead no="§1 How it works" title="Three steps, one chip, many jobs." id="how">A microcontroller runs a network by fetching and decoding instructions, so even a tiny one costs it thousands of clock cycles. A fully hardwired network is fast but can only ever do one job. NetSilcon sits in between.</SecHead>

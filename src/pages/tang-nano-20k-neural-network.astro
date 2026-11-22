@@ -2,6 +2,7 @@
 import Guide from '../layouts/Guide.astro';
 import SecHead from '../components/SecHead.astro';
 import Tag from '../components/Tag.astro';
+import BoardPhotos from '../components/BoardPhotos.astro';
 import { repo, M6X4, M64X6 } from '../config';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
@@ -27,6 +28,7 @@ const faq = [
 >
   <section class="sec" aria-labelledby="board">
     <SecHead no="§1" title="The board." id="board" />
+    <BoardPhotos which={['board_top_new','board_bottom_pins','board_angle_leds','board_closeup_chips']} caption="Our Tang Nano 20K: top, bottom (pin numbers), running, and the BL616 USB bridge" />
     <div class="prose guide-prose">
       <p>The Tang Nano 20K carries a Gowin <b>GW2AR-LV18QN88C8/I7</b> FPGA, a 27 MHz clock and a USB-C port with an onboard USB bridge (a BL616) that both programs the FPGA and gives you a serial port. For NetSilcon the important resources are the hardware multipliers (DSP blocks), the 46 block RAMs and the logic cells.</p>
       <p>Pins used by both NetSilcon engines: 27 MHz clock on pin 4, UART on pins 69 (TX) and 70 (RX), and the onboard LEDs on pins 15–20 for status.</p>

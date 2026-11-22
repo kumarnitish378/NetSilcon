@@ -1,0 +1,28 @@
+---
+// Real photos of the Sipeed Tang Nano 20K that runs NetSilcon (taken by Nitish Kumar Sharma).
+interface Props { which?: string[]; caption?: string }
+const ALL: Record<string, string> = {
+  board_angle_leds: 'Tang Nano 20K running NetSilcon, USB-C connected, user LEDs lit next to the Gowin GW2AR-18 FPGA',
+  board_usb_leds: 'Tang Nano 20K on the desk with USB-C cable, GW2AR-18 FPGA and lit LEDs',
+  board_top_leds: 'Close-up of the Gowin GW2AR-18 FPGA, BL616 USB bridge and flash chip on the Tang Nano 20K',
+  board_closeup_chips: 'Close-up of the BL616 USB bridge chip and the GW2AR-18 FPGA on the Tang Nano 20K',
+  board_top_new: 'Sipeed Tang Nano 20K board, top side, with its pin header',
+  board_bottom_pins: 'Sipeed Tang Nano 20K, bottom side with pin numbers and microSD slot',
+};
+const { which = ['board_angle_leds', 'board_top_leds', 'board_bottom_pins'], caption = 'The real hardware: Sipeed Tang Nano 20K (Gowin GW2AR-18) that runs NetSilcon' } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<figure class="fig photos">
+  <div class={`pgrid n${which.length}`}>
+    {which.map((k) => (
+      <a href={`${base}/images/board/${k}.webp`}><img src={`${base}/images/board/${k}.webp`} alt={ALL[k]} width="1280" height="720" loading="lazy" decoding="async" /></a>
+    ))}
+  </div>
+  <figcaption><span>{caption}</span><span>Photos: NetSilcon</span></figcaption>
+</figure>
+<style>
+  .pgrid { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pgrid.n2, .pgrid.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pgrid img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--rule); }
+  @media (max-width: 640px) { .pgrid { grid-template-columns: 1fr; } }
+</style>
