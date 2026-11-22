@@ -14,7 +14,7 @@ Ask three questions:
 - **Is the answer one of two labels, or two values?** HEALTHY / FAULT, or speed and steering.
 - **Does each decision stand on its own?** The network sees only the current 4 inputs. If the past matters, feed it a feature that carries the past, such as a rate of change.
 
-## 2 · Describe the job in `model/apps.py`
+## 2 · Describe the job in `python/model/apps.py`
 
 Each app is a Python `dict`. The easiest start is to copy the `IRRIGATION` entry and change it:
 
@@ -35,11 +35,11 @@ A tip from the rover model: **rules with sudden jumps are hard for a small netwo
 ## 3 · Train, quantize and pack
 
 ```bash
-cd model
+cd python/model
 python make_model.py <name>
 ```
 
-This trains the 4 → 6 → 6 → 6 → 6 → 2 network in floating point with plain numpy, converts it to int8 weights, int16 biases and one shift per layer, checks the integer model against the float model, and writes `models/<name>.json` with the CRC, demo scenarios and golden test vectors.
+This trains the 4 → 6 → 6 → 6 → 6 → 2 network in floating point with plain numpy, converts it to int8 weights, int16 biases and one shift per layer, checks the integer model against the float model, and writes `models/<name>/<name>.json` with the CRC, demo scenarios and golden test vectors.
 
 **Check:** the script prints the int8 accuracy, the 5 shifts and the CRC.
 
@@ -50,8 +50,8 @@ The [playground](/playground/) runs the same bit-exact maths in your browser. Fo
 ## 5 · Load and verify on the chip
 
 ```bash
-cd host
-python netsilcon_host.py COM7 --load ../models/<name>.json
+cd python/host
+python netsilcon_host.py COM7 --load ../../models/<name>/<name>.json
 python netsilcon_host.py COM7 --test       # every golden vector must match
 python netsilcon_host.py COM7 --demo
 ```

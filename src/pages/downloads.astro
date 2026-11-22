@@ -11,18 +11,18 @@ const files = [
   { icon: 'play', t: 'Demo video', d: 'The Tang Nano 20K at work.', meta: 'MP4 · 5.6 MB · 2:07', href: u('/media/NetSilcon_Demo.mp4'), dl: true },
 ];
 const repoParts = [
-  { p: 'rtl/', d: 'The network in Verilog: nn_layer.v, netsilcon_top.v. Shape fixed, numbers loadable.' },
-  { p: 'board/', d: 'Tang Nano 20K top level, UART, model loader with CRC-16, pin and clock constraints.' },
-  { p: 'tb/', d: 'Testbenches: network, board self-test, UART, model upload.' },
-  { p: 'model/', d: 'Training, quantization and packing (numpy only).' },
-  { p: 'models/', d: 'Ready-made model files: motor_fault, irrigation, rover (v2), rover_v1.' },
-  { p: 'host/', d: 'PC tool: inference, upload, tests and logs.' },
-  { p: 'rover_sim/', d: 'Rover simulator, batch tests, hardware-in-the-loop, browser version.' },
-  { p: 'docs/', d: 'Architecture, protocol, results, benchmarks, and the raw hardware logs.' },
-  { p: 'bench/', d: 'The same network in C, for CPU and Cortex-M4 benchmarks.' },
+  { p: 'NetSilcon-Models/NetSilcon-6x4/', d: 'NetSilcon-6x4: 4 → 6×4 → 2 engine, 201-byte model, 15 clocks per inference.' },
+  { p: 'NetSilcon-Models/NetSilcon-64x6/', d: 'NetSilcon-64x6: 16 → 64×6 → 16 engine, 23,335-byte model, 448 clocks per inference.' },
+  { p: 'NetSilcon-Models/NetSilcon-6x4/models/', d: 'Trained 6x4 applications, one folder each: motor_fault, irrigation, rover (v2 and v1).' },
+  { p: 'NetSilcon-Models/NetSilcon-64x6/models/', d: 'Trained 64x6 applications: rover (16 LiDAR sectors), plus synthetic and stress test models.' },
+  { p: 'NetSilcon-Models/NetSilcon-6x4/fpga/', d: 'Every model has the same layout. fpga/: Verilog (rtl, board, tb), built-in RAM contents, simulation and build scripts.' },
+  { p: 'NetSilcon-Models/NetSilcon-6x4/python/', d: 'python/: bit-exact reference model, training, PC host tool, rover simulator, CPU benchmark.' },
+  { p: 'NetSilcon-Models/NetSilcon-64x6/docs/', d: 'docs/: protocol, architecture, test report, Gowin build guide.' },
+  { p: 'NetSilcon-Models/NetSilcon-64x6/results/', d: 'results/: the raw hardware logs behind every measured number, and the result summaries.' },
+  { p: 'Agent/', d: 'Plain-text project summary and a setup prompt for AI coding agents.' },
 ];
 ---
-<Base title="Downloads and repositories" description="Download the NetSilcon-6x4 datasheet and videos, and get the open-source Verilog, Python tools and model files for the FPGA neural network." crumbs={[{ name: 'Downloads', path: '/downloads/' }]}>
+<Base title="Downloads and repositories" description="Download the NetSilcon datasheet and videos, and get the open-source Verilog, Python tools, trained models and hardware logs for the FPGA neural network engines." crumbs={[{ name: 'Downloads', path: '/downloads/' }]}>
   <div class="wrap">
     <header class="pagehd">
       <div><span class="crumb">Downloads</span><h1>Downloads and repositories.</h1><p class="lede">Everything is open source under the Apache License 2.0: hardware description, tools, model files and the logs behind every measured number.</p></div>
@@ -42,11 +42,11 @@ const repoParts = [
       </ul>
     </section>
     <section class="sec" aria-labelledby="repo">
-      <SecHead no="§2 Repository" title="What is in NetSilcon-6x4." id="repo" />
+      <SecHead no="§2 Repository" title="What is in NetSilcon-FPGA." id="repo" />
       <div class="tbl-wrap">
         <table class="stack">
           <thead><tr><th>Folder</th><th>Contents</th></tr></thead>
-          <tbody>{repoParts.map((r) => <tr><td data-l="Folder" class="num nw"><a href={repoTree(r.p)} rel="noopener">{r.p}</a></td><td data-l="Contents">{r.d}</td></tr>)}</tbody>
+          <tbody>{repoParts.map((r) => <tr><td data-l="Folder" class="num nw"><a href={repoTree(r.p)} rel="noopener">{r.p.replace('NetSilcon-Models/', '')}</a></td><td data-l="Contents">{r.d}</td></tr>)}</tbody>
         </table>
       </div>
       <p class="small" style="margin-top:12px"><a href={repo('LICENSE')} rel="noopener">LICENSE</a> · Apache-2.0 · Copyright 2026 Nitish Kumar Sharma</p>

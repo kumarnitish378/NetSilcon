@@ -1,0 +1,37 @@
+---
+title: "130× bigger, same board: NetSilcon-64x6 drives a rover"
+description: "NetSilcon-64x6 runs a 22,528-weight int8 network on the Tang Nano 20K in 448 clocks, and its first trained model made 19,200 driving decisions with 0 mismatches."
+date: 2026-11-22
+order: 5
+---
+
+The first NetSilcon engine was deliberately tiny: 4 inputs, 144 weights, an answer in 15 clock cycles. The question everyone asked was simple: *does the idea scale?*
+
+Today the answer is on the same small Tang Nano 20K board: **NetSilcon-64x6**.
+
+- **16 inputs → six layers of 64 neurons → 16 outputs**: 22,528 int8 weights, about 130 times more parameters
+- **448 clock cycles per inference**, every time, measured with a hardware counter
+- **3,200 test vectors** on the FPGA, bit for bit equal to the Python model
+- **31× fewer clock cycles** than a laptop CPU running the same network in optimised C
+
+## How it fits
+
+The small engine wires every neuron in parallel. That does not scale, so NetSilcon-64x6 works differently: 22,528 weights live in 32 block RAMs, and each clock one input value is broadcast to 64 multiply-accumulate lanes, one lane per neuron. A single shared requantizer finishes each layer. The bigger network uses *less* logic (35 %) than the small one.
+
+The model is still loadable: a 23,335-byte image goes over USB in about 2 seconds into a second weight bank, and is switched in only after its CRC-32 checks out.
+
+## Its first job: driving
+
+I trained a rover controller for it. It sees a 360° LiDAR scan as 16 sectors and decides speed and steering. It learned from hand-written driving rules, then from its own mistakes, using only randomly generated rooms.
+
+Then the real board drove: the simulator sent every scan to the Tang Nano 20K, and the FPGA's answer steered the rover.
+
+- **19,200 decisions, 0 mismatches** with the Python model
+- **8 drives, 0 crashes, 0 times stuck**, 48 m per drive on average
+- In 40 rooms it had never seen, it drove **14 % further** than the 4-sector NetSilcon-6x4 rover
+
+The safety stop and the 3-point-turn supervisor still run on the PC. Moving them into the FPGA is next.
+
+[Specifications and results →](/netsilcon-64x6/) · [Code and logs on GitHub](https://github.com/kumarnitish378/NetSilcon-FPGA)
+
+*Have a job with up to 16 sensor readings? Tell me about it on [LinkedIn](https://www.linkedin.com/in/nitish-kumar-sharma-21801013b/). It may become the next trained model.*

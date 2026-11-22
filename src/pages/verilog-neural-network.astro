@@ -1,0 +1,104 @@
+---
+import Guide from '../layouts/Guide.astro';
+import SecHead from '../components/SecHead.astro';
+import Tag from '../components/Tag.astro';
+import { repo, M64X6 } from '../config';
+const faq = [
+  { q: 'How do you write a neural network in Verilog?', a: 'Train the network in floating point, quantize it to integers (int8 weights, wider biases, one shift per layer), then build each neuron as a multiply-accumulate followed by ReLU and a requantization step: round, shift right, clamp to 8 bits. Write a Python model with exactly the same integer maths and compare every hardware output with it in simulation and on the board.' },
+  { q: 'How wide should the accumulator be?', a: 'Wide enough that the worst-case sum cannot overflow. An int8 × int8 product needs 16 bits; adding n products needs about log2(n) more bits, plus the bias. NetSilcon-6x4 uses a 20-bit accumulator for 6 inputs, NetSilcon-64x6 a 24-bit accumulator for 64 inputs, and a stress model with extreme weights proves it on the hardware.' },
+  { q: 'Why int8 instead of floating point in Verilog?', a: 'Integer multipliers map directly onto FPGA DSP blocks and are small and fast; floating point needs much more logic. With careful quantization a small int8 network loses little accuracy: the NetSilcon motor-fault model reaches 94.5 % in int8 and the 64x6 rover controller agrees with its teacher on 89.8 % of scans.' },
+  { q: 'How do you check that the Verilog matches the model?', a: 'Use golden vectors: inputs and the exact integer outputs from the Python model, run through the testbench and later through the real FPGA over UART. Then break the design on purpose (a mutation test) to make sure the tests would notice. NetSilcon-64x6 passed 1,200 vectors in simulation, 3,200 on the board, and caught 11 of 11 deliberate bugs.' },
+  { q: 'Should the weights be in registers or block RAM?', a: 'Registers allow every multiplier to read its weight at once, which suits tiny networks (NetSilcon-6x4 keeps 144 weights in registers). For thousands of weights, block RAM is the only practical place: NetSilcon-64x6 stores 22,528 weights in 32 block RAMs and reads two lanes per RAM each clock.' },
+];
+---
+<Guide
+  path="/verilog-neural-network/"
+  title="Neural network in Verilog: int8 MAC, ReLU and requantization."
+  fullTitle="Neural network in Verilog: int8 MAC, ReLU, requantization (with code) · NetSilcon"
+  description="How to write a neural network in Verilog: int8 multiply-accumulate, accumulator width, ReLU, rounding and clamping, weights in block RAM, and bit-exact testing. Real code."
+  lede="This is the practical part: the exact integer maths a neuron needs, how it looks in Verilog, how wide each signal must be, where the weights go, and how to prove the hardware matches the model. All examples come from NetSilcon, an open-source design that runs on a Tang Nano 20K."
+  updated="2026-11-22"
+  about={['Verilog', 'Neural network', 'int8 quantization', 'FPGA design']}
+  toc={[{ id: 'math', label: 'The neuron maths' }, { id: 'code', label: 'The Verilog' }, { id: 'widths', label: 'Bit widths' }, { id: 'weights', label: 'Where weights live' }, { id: 'test', label: 'Proving it bit-exact' }, { id: 'lessons', label: 'Lessons from hardware' }]}
+  faq={faq}
+  related={[{ href: '/neural-network-on-fpga/', label: 'Neural network on FPGA: the full guide' }, { href: '/technology/', label: 'NetSilcon technology, step by step' }, { href: '/tang-nano-20k-neural-network/', label: 'Run it on a Tang Nano 20K' }, { href: '/fpga-ai-accelerator/', label: 'FPGA AI accelerator: architectures and numbers' }]}
+>
+  <section class="sec" aria-labelledby="math">
+    <SecHead no="§1" title="The neuron maths, in integers." id="math" />
+    <div class="prose guide-prose">
+      <p>Every neuron does four things. Both NetSilcon engines use exactly these steps, and so does their Python reference model:</p>
+      <ol>
+        <li><b>Accumulate:</b> <code>acc = bias + Σ x · w</code>, with int8 inputs and weights and an int16 bias.</li>
+        <li><b>Activate:</b> on hidden layers, ReLU: <code>acc = max(acc, 0)</code>.</li>
+        <li><b>Rescale:</b> <code>v = (acc + 2^(s−1)) &gt;&gt;&gt; s</code>, an arithmetic right shift by the layer's shift <code>s</code>, rounded half up.</li>
+        <li><b>Clamp:</b> to 0…127 on hidden layers, −128…127 on the output layer, so the next layer gets int8 again.</li>
+      </ol>
+      <p>One power-of-two shift per layer replaces a floating-point scale factor. It costs a barrel shifter instead of a multiplier, and training chooses the shift so that almost no activation saturates.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="code">
+    <SecHead no="§2" title="The requantizer in Verilog." id="code">This is NetSilcon-64x6's shared requantizer, slightly shortened. All 64 neuron sums pass through it one per clock, so the design needs one barrel shifter instead of 64.</SecHead>
+<pre><code>{`module ns64_requant (
+    input  wire               clk,
+    input  wire signed [23:0] acc_in,   // neuron sum
+    input  wire        [4:0]  s,        // layer shift 0..23
+    input  wire               relu,     // 1 on hidden layers
+    output reg         [7:0]  y         // int8 result, 2 clocks later
+);
+    // stage A: ReLU + rounding constant (25 bits cannot overflow)
+    wire signed [24:0] act  = (relu && acc_in[23]) ? 25'sd0 : {acc_in[23], acc_in};
+    wire signed [24:0] half = (s == 0) ? 25'sd0 : (25'sd1 <<< (s - 1));
+    reg  signed [24:0] sum;  reg [4:0] s_d;  reg r_d;
+    always @(posedge clk) begin sum <= act + half; s_d <= s; r_d <= relu; end
+
+    // stage B: arithmetic shift + clamp
+    wire signed [24:0] v = sum >>> s_d;
+    always @(posedge clk)
+        if (r_d) y <= (v > 127) ? 8'd127 : v[7:0];
+        else     y <= (v > 127) ? 8'h7F : (v < -128) ? 8'h80 : v[7:0];
+endmodule`}</code></pre>
+    <p class="small">Full source: <a href={repo(M64X6 + 'fpga/rtl/ns64_requant.v')} rel="noopener">fpga/rtl/ns64_requant.v</a> on GitHub (Apache-2.0).</p>
+  </section>
+
+  <section class="sec" aria-labelledby="widths">
+    <SecHead no="§3" title="Bit widths that cannot overflow." id="widths" />
+    <div class="prose guide-prose">
+      <p>An int8 × int8 product fits in 16 bits. A sum of <i>n</i> products needs about log2(<i>n</i>) more bits, and the bias adds its own range. Get this wrong and the network works on typical inputs but fails on extreme ones, which is the worst kind of bug.</p>
+      <ul>
+        <li><b>NetSilcon-6x4:</b> 6 inputs per neuron, 20-bit accumulator. It cannot overflow for any input or weight. <Tag b="M" /></li>
+        <li><b>NetSilcon-64x6:</b> 64 inputs per neuron, 24-bit accumulator. A <i>stress</i> model with every weight at −128 or +127 and biases at the int16 limits drives layer sums up to 1,008,128 (21 bits) and still matches Python on the board. <Tag b="M" /></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="weights">
+    <SecHead no="§4" title="Registers or block RAM?" id="weights" />
+    <div class="prose guide-prose">
+      <p>If every multiplier needs its weight in the same clock, the weights must sit in registers. That is fine for 144 weights (NetSilcon-6x4) but uses logic fast. For thousands of weights, block RAM is the answer. NetSilcon-64x6 uses 32 RAMs of 1K × 16 bits; each 16-bit word holds the weights of two lanes, so one shared address feeds all 64 lanes every clock.</p>
+      <p>Two banks make updates safe: bank 0 holds the built-in model, bank 1 receives an upload, and the engine switches banks in one clock only after the CRC-32 is good.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="test">
+    <SecHead no="§5" title="Proving the hardware is bit-exact." id="test" />
+    <div class="prose guide-prose">
+      <ol>
+        <li><b>Python first.</b> A bit-exact integer model, checked against a second independent implementation.</li>
+        <li><b>Golden vectors.</b> Inputs and expected outputs from Python, run through the Icarus Verilog testbench: 1,200 vectors, 0 mismatches for NetSilcon-64x6, plus all 21,216 requantizer cases.</li>
+        <li><b>Mutation tests.</b> Break the design on purpose (wrong rounding, missing ReLU, swapped bytes) and make sure the tests fail. 11 of 11 bugs caught.</li>
+        <li><b>On the board.</b> The same vectors over UART: 3,200 on the FPGA, 0 mismatches, and 19,200 decisions with the FPGA driving a simulated rover.</li>
+      </ol>
+      <p>The full record is the <a href={repo(M64X6 + 'docs/test_report.md')} rel="noopener">NetSilcon-64x6 test report</a>.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="lessons">
+    <SecHead no="§6" title="Three lessons from real hardware." id="lessons" />
+    <div class="cols cols-3">
+      <div><span class="step-no">memory inference</span><p class="mut">A RAM written with byte enables was built from 80,000 logic cells instead of block RAM by the vendor tool. A plain simple-dual-port RAM plus pairing two lanes per 16-bit word fixed it.</p></div>
+      <div><span class="step-no">the bug was on the PC</span><p class="mut">Damaged UART replies looked like an FPGA fault. The cause was the host script: changing the serial timeout on Windows reset the USB bridge. Read the whole chain before blaming the hardware.</p></div>
+      <div><span class="step-no">tools copy files</span><p class="mut">Gowin EDA compiles copies of the sources in its project folder. Edit the original and forget to copy, and you test old code.</p></div>
+    </div>
+  </section>
+</Guide>

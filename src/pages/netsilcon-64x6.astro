@@ -1,0 +1,172 @@
+---
+import Base from '../layouts/Base.astro';
+import SecHead from '../components/SecHead.astro';
+import Proof from '../components/Proof.astro';
+import LaneDiagram from '../components/LaneDiagram.astro';
+import Tag from '../components/Tag.astro';
+import { specGroups64, proof64, cycles64, rover64, family } from '../data/facts';
+import { SITE, repo, repoTree, M64X6, useCaseUrl } from '../config';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const faq = [
+  { q: 'How big is the NetSilcon-64x6 network?', a: '16 inputs, six hidden layers of 64 neurons and 16 outputs: 22,528 int8 weights, 400 int16 biases and 7 layer shifts. The whole model is a 23,335-byte image with a CRC-32.' },
+  { q: 'How fast is one inference?', a: '448 clock cycles, every time, measured with a hardware counter on the Tang Nano 20K. At 27 MHz that is 16.6 µs. A laptop CPU needs about 14,100 cycles for the same bit-exact network, so the FPGA engine needs 31 times fewer cycles.' },
+  { q: 'Can I load my own model?', a: 'Yes. Any network of this shape loads over UART in about 2 seconds. The image goes into the inactive weight bank and is only switched in after the CRC-32 checks out, so a damaged upload never touches the running model.' },
+  { q: 'Is the hardware result exactly the same as the Python model?', a: 'Yes. 3,200 test vectors on the FPGA and 19,200 hardware-in-the-loop decisions matched the Python int8 model bit for bit.' },
+];
+---
+<Base
+  fullTitle="NetSilcon-64x6: 22,528-weight int8 neural network on FPGA (Tang Nano 20K)"
+  description="NetSilcon-64x6: a 16→64×6→16 int8 neural network on FPGA with 22,528 loadable weights. 448 clocks per inference, bit-exact, 31× fewer cycles than a CPU. Open source."
+  crumbs={[{ name: 'NetSilcon-64x6', path: '/netsilcon-64x6/' }]}
+  jsonld={[
+    { '@type': 'SoftwareSourceCode', name: 'NetSilcon-64x6', description: 'Open-source int8 neural network engine on FPGA in Verilog: 16 → 64×6 → 16, 22,528 loadable weights in block RAM, 64 MAC lanes, for the Sipeed Tang Nano 20K.', codeRepository: repoTree(M64X6), programmingLanguage: ['Verilog', 'Python'], license: 'https://www.apache.org/licenses/LICENSE-2.0', author: { '@type': 'Person', name: SITE.author } },
+    { '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+  ]}
+>
+  <div class="wrap">
+    <div class="docline"><span>NetSilcon-64x6 · FPGA reference · 22 Nov 2026</span><span>every value carries a basis: <Tag b="M" /> measured <Tag b="E" /> estimated</span></div>
+    <header class="pagehd">
+      <div>
+        <span class="crumb">Product · NetSilcon-64x6</span>
+        <h1>NetSilcon-64x6</h1>
+        <p class="lede">The bigger engine. 16 inputs, six hidden layers of 64 neurons, 16 outputs: 22,528 weights you can reload over a serial cable. One answer every 448 clock cycles, bit for bit the same as the Python model.</p>
+        <div class="btns" style="margin-top:24px">
+          <a class="btn pri" href={repoTree(M64X6)} rel="noopener">Code and logs on GitHub</a>
+          <a class="btn" href={repo(M64X6 + 'docs/test_report.md')} rel="noopener">Read the test report</a>
+        </div>
+      </div>
+      <div class="panel statusbox">
+        <div class="row"><span class="callout">FPGA reference</span><span class="status Available">Available</span></div>
+        <p class="small">Running on the Sipeed Tang Nano 20K, same board as NetSilcon-6x4. Open source.</p>
+        <div class="row"><span class="callout">Trained models</span><span class="status Available">1 + 2 test</span></div>
+        <p class="small" style="margin:0">Rover controller (16 LiDAR sectors), plus synthetic and stress test models.</p>
+      </div>
+    </header>
+
+    <Proof items={proof64} />
+    <p class="small proofnote">Measured on the Tang Nano 20K (Gowin GW2AR-18) at 27 MHz. Every number links back to a log file in the repository.</p>
+
+    <section class="sec" aria-labelledby="how">
+      <SecHead no="§1 How it computes" title="One input in, 64 neurons at once." id="how">Each clock, one input value goes to all 64 lanes. Every lane is one neuron: it multiplies the value by its own weight and adds it up. When a layer is done, one shared requantizer turns the 64 sums into the next layer's inputs.</SecHead>
+      <figure class="fig"><LaneDiagram /><figcaption><span>Fig. 1 · NetSilcon-64x6 dataflow</span><span>16 + 6 × 64 = 400 input steps, plus pipeline = 448 clocks</span></figcaption></figure>
+    </section>
+
+    <section class="sec" aria-labelledby="specs">
+      <SecHead no="§2 Specifications" title="Key specifications." id="specs">From the FPGA reference at 27 MHz and the Gowin EDA build report.</SecHead>
+      <div class="specs">
+        {specGroups64.map((g) => (
+          <div class="tbl-wrap">
+            <table>
+              <caption>{g.title}</caption>
+              <tbody>
+                {g.rows.map((r) => (
+                  <tr><th scope="row">{r.k}</th><td>{r.v}</td><td class="b"><Tag b={r.basis} /></td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="cycles">
+      <SecHead no="§3 Clock cycles" title="31× fewer clock cycles than a laptop CPU." id="cycles">The same bit-exact network, compared by clock cycles per inference, so the result does not depend on how fast each chip is clocked. CPU: one thread, measured; the laptop clock was read from Task Manager.</SecHead>
+      <div class="tbl-wrap">
+        <table class="stack">
+          <thead><tr><th>Implementation</th><th>Clock</th><th>Time per inference</th><th class="r">Cycles</th><th class="r">Multiply-adds per cycle</th></tr></thead>
+          <tbody>
+            {cycles64.map((c) => (
+              <tr class={c.us ? 'us' : ''}><td data-l="Implementation"><b>{c.impl}</b></td><td data-l="Clock" class="num nw">{c.clock}</td><td data-l="Time" class="num nw">{c.time}</td><td data-l="Cycles" class="num r nw">{c.cycles}</td><td data-l="MACs per cycle" class="num r">{c.macs}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div class="cols cols-3 notes">
+        <div><span class="step-no">honest limit</span><p class="mut">At 27 MHz the laptop still finishes first (3.45 µs vs 16.6 µs): it runs at a 151× higher clock. The FPGA engine would match it at about 130 MHz.</p></div>
+        <div><span class="step-no">why cycles matter</span><p class="mut">A chip clocked at a few hundred MHz with this design would be faster than the laptop, at a tiny fraction of the power. That is the path from FPGA to silicon.</p></div>
+        <div><span class="step-no">range</span><p class="mut">The CPU clock was not logged during the run. Between its base and turbo clock the advantage is 20–38× fewer cycles.</p></div>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="rover">
+      <SecHead no="§4 Trained model" title="A rover that drives itself, decided on the FPGA." id="rover">The first trained NetSilcon-64x6 model reads a 360° LiDAR scan as 16 sectors of 22.5° and outputs speed and steering. It learned from hand-written driving rules and then from its own mistakes (DAgger), trained only on randomly generated rooms.</SecHead>
+      <div class="cols cols-2 rov">
+        <div>
+          <h3>In simulation <Tag b="M" /></h3>
+          <div class="tbl-wrap">
+            <table class="stack">
+              <thead><tr><th>Driver</th><th>Test</th><th>Crashes</th><th>Stuck</th><th class="r">Avg distance</th></tr></thead>
+              <tbody>
+                {rover64.sim.map((r) => (
+                  <tr class={r.us ? 'us' : ''}><td data-l="Driver">{r.who}</td><td data-l="Test" class="small">{r.set}</td><td data-l="Crashes" class="num nw">{r.crash}</td><td data-l="Stuck" class="num nw">{r.stuck}</td><td data-l="Distance" class="num r nw">{r.dist}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="small">Every drive lasts 120 s, safety stop on. In 40 rooms it had never seen, the 64x6 drove 14 % further than the 4-sector NetSilcon-6x4 rover.</p>
+        </div>
+        <div>
+          <h3>With the real FPGA in the loop <Tag b="M" /></h3>
+          <div class="tbl-wrap">
+            <table>
+              <tbody>{rover64.hil.map((r) => <tr><th scope="row">{r.k}</th><td class="num">{r.v}</td></tr>)}</tbody>
+            </table>
+          </div>
+          <p class="small">The simulator sent every scan to the Tang Nano 20K; the board's answer steered the rover. Model CRC-32 {rover64.crc}, int8 agreement with the driving rules {rover64.agreement}. The safety stop and supervisor ran on the PC.</p>
+        </div>
+      </div>
+      <p class="more"><a href={repo(M64X6 + 'models/rover/README.md')} rel="noopener">How the rover model was trained →</a> &nbsp; <a href={u('/playground/#rover')}>Drive the 6x4 rover in your browser →</a></p>
+    </section>
+
+    <section class="sec" aria-labelledby="family">
+      <SecHead no="§5 Family" title="NetSilcon-6x4 and NetSilcon-64x6 side by side." id="family">Same idea, same board, same neuron maths: the shape is fixed in hardware, the numbers are loadable.</SecHead>
+      <div class="tbl-wrap">
+        <table class="stack">
+          <thead><tr><th></th><th><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4</a></th><th>NetSilcon-64x6</th></tr></thead>
+          <tbody>{family.map((f) => <tr><th scope="row" data-l="">{f.k}</th><td data-l="6x4">{f.a}</td><td data-l="64x6">{f.b}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="try">
+      <SecHead no="§6 Try it" title="Run it on your own Tang Nano 20K." id="try">Program the NetSilcon-64x6 bitstream once. After that a new model is only a file upload.</SecHead>
+<pre><code>git clone https://github.com/kumarnitish378/NetSilcon-FPGA.git
+cd NetSilcon-FPGA/NetSilcon-Models/NetSilcon-64x6
+bash fpga/scripts/run_sim_engine.sh                               # simulation: engine vs Python
+python python/host/ns64_host.py COM7 --load models/rover/rover.json   # upload the rover model
+python python/host/ns64_host.py COM7 --test                           # 1000 golden vectors
+python python/rover_sim/rover64.py --hil COM7 --unstick --runs 2      # the FPGA drives</code></pre>
+      <p class="small">Build steps for Gowin EDA: <a href={repo(M64X6 + 'docs/gowin_build.md')} rel="noopener">docs/gowin_build.md</a>. UART protocol: <a href={repo(M64X6 + 'docs/protocol.md')} rel="noopener">docs/protocol.md</a>.</p>
+    </section>
+
+    <section class="sec" aria-labelledby="faq">
+      <SecHead no="§7 FAQ" title="Questions people ask." id="faq" />
+      <div class="faq">
+        {faq.map((f) => <details><summary>{f.q}</summary><p>{f.a}</p></details>)}
+      </div>
+      {useCaseUrl && <p class="usecase">Have a job with up to 16 sensor readings and up to 16 outputs? <a href={useCaseUrl} rel="noopener">Tell me about it on LinkedIn</a> and it may become the next trained model.</p>}
+    </section>
+  </div>
+</Base>
+
+<style>
+  .statusbox { padding: 18px 20px; display: grid; gap: 8px; }
+  .statusbox .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--rule-2); padding-top: 10px; }
+  .statusbox .row:first-child { border-top: 0; padding-top: 0; }
+  .statusbox .small { margin: 0 0 4px; }
+  .specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .specs caption { text-align: left; font: 700 16px var(--head); padding: 12px 14px 10px; border-bottom: 1px solid var(--ink); }
+  .specs th { font: 400 14px var(--sans); color: var(--mut); white-space: normal; border-bottom: 1px solid var(--rule-2); width: 40%; vertical-align: top; padding-top: 11px; }
+  .specs td { font-size: 15px; }
+  .specs td.b { width: 1%; text-align: right; }
+  .notes { margin-top: 24px; }
+  .notes .mut, .rov .small { font-size: 15px; }
+  .rov h3 { margin-top: 0; }
+  .faq details { border-top: 1px solid var(--rule); padding: 12px 0; max-width: 820px; }
+  .faq summary { cursor: pointer; font-weight: 600; }
+  .faq p { margin: 8px 0 0; color: var(--mut); }
+  .usecase { margin-top: 28px; padding: 16px 18px; border-left: 3px solid var(--acc); background: var(--acc-bg); max-width: 820px; }
+  .proofnote { margin-top: 8px; }
+  @media (max-width: 960px) { .specs { grid-template-columns: minmax(0, 1fr); } }
+</style>

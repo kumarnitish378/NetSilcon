@@ -1,4 +1,5 @@
 ---
+import { useCaseUrl } from '../config';
 import Base from '../layouts/Base.astro';
 import SecHead from '../components/SecHead.astro';
 import Icon from '../components/Icon.astro';
@@ -48,13 +49,16 @@ const u = (p: string) => `${base}${p}`;
       <div class="cols cols-3">
         <div><h3>Good fit</h3><p class="mut">A few sensor readings, a fast and repeatable answer, power or cost too tight for a bigger processor. Fault checks beside a motor drive, a pump or a battery.</p></div>
         <div><h3>Needs care</h3><p class="mut">Jobs that need memory of the past. The network sees only the current four inputs, so feed it features like a rate of change, or add a small supervisor, as the rover does.</p></div>
-        <div><h3>Not a fit</h3><p class="mut">Images, audio streams or language. 170 parameters is deliberately small. The planned NetSilcon-64x6 is larger, but still meant for sensor-level decisions.</p></div>
+        <div><h3>Not a fit</h3><p class="mut">Images, audio streams or language. NetSilcon-6x4 has 170 parameters on purpose. <a href={u('/netsilcon-64x6/')}>NetSilcon-64x6</a> takes 16 inputs and about 23,000 parameters, still meant for sensor-level decisions.</p></div>
       </div>
       <p class="more"><a href={u('/docs/train-your-own-model/')}>Train a model for your own job →</a></p>
+      {useCaseUrl && <div class="usecase"><h3>Suggest a use case</h3><p>Do you have a sensor decision you would like a NetSilcon engine to learn? Send the inputs (up to 4 for NetSilcon-6x4, up to 16 for NetSilcon-64x6) and the decision you need. Good ideas become the next trained model, published with its test results.</p><a class="btn pri" href={useCaseUrl} rel="noopener">Message Nitish on LinkedIn</a></div>}
     </section>
   </div>
 </Base>
 <style>
+  .usecase { margin-top: 28px; padding: 18px 20px; border-left: 3px solid var(--acc); background: var(--acc-bg); max-width: 860px; }
+  .usecase h3 { margin-top: 0; }
   .legend { padding: 18px 20px; }
   .pill { display: inline-block; font: 500 11px/1 var(--mono); padding: 5px 7px 4px; border: 1px solid var(--mut); color: var(--mut); margin-right: 6px; white-space: nowrap; }
   .pill.ok { border-color: var(--acc); color: var(--acc); background: var(--acc-bg); }

@@ -6,6 +6,12 @@ The official website for **NetSilcon**, open-source neural-network hardware: a f
 
 Built with [Astro](https://astro.build) (static output), MDX for the docs and [Pagefind](https://pagefind.app) for search. No backend, no tracking, no external requests: fonts, KaTeX and every graphic are served from the site itself.
 
+## Part of NetSilcon-FPGA
+
+This repository is included in [NetSilcon-FPGA](https://github.com/kumarnitish378/NetSilcon-FPGA) as the git submodule `website/`.
+When a model or a result changes there, `python tools/sync_website.py` (in NetSilcon-FPGA) copies the model files into this site
+and lists the numbers in `src/data/facts.ts` that need a look; commit here, then update the submodule pointer there.
+
 ## Run it on your computer
 
 You need [Node.js](https://nodejs.org) 18.20 or newer (20 or 22 recommended).
@@ -26,8 +32,8 @@ npm run preview      # serves dist/ at http://localhost:4321
 
 ## Before you publish
 
-1. **GitHub link.** `githubUrl` in `src/config.ts` points to the NetSilcon-6x4 code repository. Every GitHub link on the site comes from this one line. That repository must be public for visitors to open the links.
-2. **Contact.** In the same file, fill in `contact.email`, `contact.linkedin` and `contact.github`, or leave a field empty to hide it.
+1. **GitHub link.** `githubUrl` in `src/config.ts` points to the [NetSilcon-FPGA](https://github.com/kumarnitish378/NetSilcon-FPGA) code repository. Every GitHub link on the site comes from this one line plus the model folder paths `M6X4` and `M64X6`. That repository must be public for visitors to open the links.
+2. **Contact.** In the same file: `contact.email`, `contact.linkedin` and `contact.github` (empty hides a line). The LinkedIn link also drives every "Suggest a use case" button (`useCaseUrl`).
 3. **Site address.** Set the `SITE_URL` environment variable to your public address when you build (used for the sitemap, canonical links and the Open Graph image). Example: `SITE_URL=https://netsilcon.dev npm run build`.
 
 ## Deploy
@@ -81,8 +87,8 @@ Then in the repository: Settings → Pages → Source: **GitHub Actions**.
 
 ```
 src/config.ts            GitHub URL and contact links (placeholders)
-src/data/facts.ts        every number on the site, with its basis: M measured, E estimated, T target
-src/data/models/*.json   the real model files from the NetSilcon-6x4 repository
+src/data/facts.ts        every number on the site, with its basis: M measured, E estimated, T target (6x4 and 64x6)
+src/data/models/*.json   the real NetSilcon-6x4 model files from NetSilcon-FPGA (copied by its tools/sync_website.py)
 src/scripts/netsilcon.js bit-exact JavaScript port of the int8 network (playground)
 src/components/          hand-built SVG: network, timing diagram, pinout, block diagram, icons
 src/pages/               one file per page

@@ -3,9 +3,9 @@ import Base from '../layouts/Base.astro';
 import SecHead from '../components/SecHead.astro';
 import BenchTable from '../components/BenchTable.astro';
 import Tag from '../components/Tag.astro';
-import { repo, repoTree } from '../config';
+import { repo, repoTree, M6X4 } from '../config';
 const sources = [
-  { t: 'Gowin power analysis summary of the routed design', h: repo('docs/logs/gowin_power_summary.txt'), who: 'repository' },
+  { t: 'Gowin power analysis summary of the routed design', h: repo(M6X4 + 'results/logs/gowin_power_summary.txt'), who: 'repository' },
   { t: 'STM32F407 datasheet, Table 20', h: 'https://www.st.com/resource/zh/datasheet/stm32f407vg.pdf', who: 'ST' },
   { t: 'Intel Core i7-13650HX specifications', h: 'https://www.intel.com/content/www/us/en/products/sku/232101/x/specifications.html', who: 'Intel' },
   { t: 'CUDA Graphs introduction: launch overheads', h: 'https://docs.nvidia.com/dl-cuda-graph/cuda-graph-basics/introduction.html', who: 'NVIDIA' },
@@ -70,7 +70,7 @@ const sources = [
         </article>
         <article>
           <h3>Reproduce it</h3>
-          <p>The benchmark code is in <a href={repoTree('bench')} rel="noopener"><code>bench/</code></a>: <code>net.h</code> is the same network in plain C with weights from <code>models/motor_fault.json</code>. The STM32 figure will be replaced by a measurement on real hardware; that is next on the <a href={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/roadmap/`}>roadmap</a>.</p>
+          <p>The benchmark code is in <a href={repoTree(M6X4 + 'python/bench')} rel="noopener"><code>bench/</code></a>: <code>net.h</code> is the same network in plain C with weights from <code>models/motor_fault.json</code>. The STM32 figure will be replaced by a measurement on real hardware; that is next on the <a href={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/roadmap/`}>roadmap</a>.</p>
         </article>
       </div>
     </section>

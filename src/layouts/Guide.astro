@@ -1,0 +1,99 @@
+---
+// Long-form guide pages (SEO landing pages): TechArticle + FAQPage structured data,
+// table of contents, FAQ, related guides and a call to action.
+import Base from './Base.astro';
+import SecHead from '../components/SecHead.astro';
+import { SITE, useCaseUrl } from '../config';
+
+interface Props {
+  path: string;
+  title: string;          // H1 and headline
+  fullTitle: string;      // <title>
+  description: string;
+  lede: string;
+  updated: string;        // YYYY-MM-DD
+  about: string[];
+  toc: { id: string; label: string }[];
+  faq: { q: string; a: string }[];
+  related: { href: string; label: string }[];
+}
+const { path, title, fullTitle, description, lede, updated, about, toc, faq, related } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const pageUrl = new URL(u(path), Astro.site).toString();
+const nice = new Date(updated + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const jsonld = [
+  {
+    '@type': 'TechArticle', headline: title, description, url: pageUrl, mainEntityOfPage: pageUrl,
+    image: new URL(u('/og.png'), Astro.site).toString(),
+    author: { '@type': 'Person', name: SITE.author, url: SITE.contact.linkedin || SITE.contact.github },
+    publisher: { '@type': 'Organization', name: 'NetSilcon', url: new URL(u('/'), Astro.site).toString() },
+    datePublished: updated, dateModified: updated, inLanguage: 'en', about,
+  },
+  { '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+];
+---
+<Base fullTitle={fullTitle} description={description} ogType="article" jsonld={jsonld} crumbs={[{ name: title, path }]}>
+  <div class="wrap">
+    <header class="pagehd">
+      <div>
+        <span class="crumb">Guide · updated {nice} · by {SITE.author}</span>
+        <h1>{title}</h1>
+        <p class="lede">{lede}</p>
+      </div>
+      <nav class="toc" aria-label="On this page">
+        {toc.map((t, i) => <a href={`#${t.id}`}>{i + 1} · {t.label}</a>)}
+        <a href="#faq">{toc.length + 1} · FAQ</a>
+      </nav>
+    </header>
+
+    <slot />
+
+    <section class="sec" aria-labelledby="faq">
+      <SecHead no={`§${toc.length + 1}`} title="Frequently asked questions." id="faq" />
+      <div class="faq">
+        {faq.map((f) => <details><summary><h3>{f.q}</h3></summary><p>{f.a}</p></details>)}
+      </div>
+    </section>
+
+    <section class="sec related" aria-labelledby="rel">
+      <SecHead no="Read next" title="Related guides and pages." id="rel" />
+      <ul>{related.map((r) => <li><a href={u(r.href)}>{r.label} →</a></li>)}</ul>
+    </section>
+
+    <section class="cta" aria-label="Get started">
+      <div>
+        <h2>The code, the models and every log are open source.</h2>
+        <p class="lede">Apache-2.0, on GitHub. Clone it, simulate it, run it on a Tang Nano 20K.</p>
+      </div>
+      <div class="btns">
+        <a class="btn pri" href={SITE.githubUrl} rel="noopener">Get the code</a>
+        {useCaseUrl && <a class="btn" href={useCaseUrl} rel="noopener">Suggest a use case</a>}
+      </div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .toc { display: flex; flex-direction: column; border-top: 1px solid var(--ink); }
+  .toc a { font: 14px var(--mono); text-decoration: none; padding: 9px 0; border-bottom: 1px solid var(--rule-2); min-height: 40px; color: var(--mut); }
+  .toc a:hover { color: var(--acc); }
+  .faq { border-top: 1px solid var(--ink); max-width: 860px; }
+  .faq details { border-bottom: 1px solid var(--rule); }
+  .faq summary { cursor: pointer; padding: 16px 0; list-style: none; display: flex; justify-content: space-between; gap: 16px; align-items: baseline; min-height: 48px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: '+'; font: 18px var(--mono); color: var(--acc); }
+  .faq details[open] summary::after { content: '−'; }
+  .faq summary h3 { font-size: 19px; }
+  .faq p { color: var(--mut); margin: 0 0 18px; max-width: 72ch; }
+  .related ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--ink); }
+  .related li { padding: 12px 0; border-bottom: 1px solid var(--rule-2); }
+  .related a { color: var(--acc); font-weight: 600; text-decoration: none; }
+  .cta { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px 48px; align-items: end; border-top: 2px solid var(--ink); padding-top: 28px; margin-top: clamp(48px, 7vw, 96px); }
+  .cta .lede { margin: 14px 0 0; }
+  .cta .btns { justify-content: flex-end; }
+  :global(.guide-prose) { max-width: 72ch; }
+  :global(.guide-prose h3) { margin-top: 1.4em; }
+  :global(.guide-tbl) { margin: 8px 0 24px; }
+  @media (max-width: 900px) { .cta, .related ul { grid-template-columns: minmax(0, 1fr); } .cta .btns { justify-content: flex-start; } }
+</style>

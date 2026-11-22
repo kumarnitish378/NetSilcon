@@ -7,12 +7,15 @@ const detail: Record<string, string> = {
   'Model storage in flash, loaded at power-up': 'Today an uploaded model lives in registers and the built-in model comes back at power-off.',
   'Real sensors instead of simulation': 'The rover results so far come from simulation and hardware-in-the-loop, not real LiDAR.',
   'STM32 benchmark on real hardware': 'Replace the counted-instructions estimate with a measurement, including CMSIS-NN.',
-  'NetSilcon-64x6: 16 → 64×6 → 16, in design': 'A larger engine with weights streamed from block RAM, prototyped on the same Tang Nano 20K.',
+  'NetSilcon-64x6: 16 → 64×6 → 16 on the same board, 448 clocks': '22,528 int8 weights in 32 block RAMs, 64 MAC lanes, 3,200 vectors bit-exact on the FPGA.',
+  'Trained 64x6 rover controller: 19,200 HIL decisions, 0 mismatches': '16 LiDAR sectors in, speed and steering out. 0 crashes in 8 hardware-in-the-loop drives.',
+  'More network shapes and trained models': 'New engine shapes and new trained applications, each verified bit-exact on the FPGA before it is published.',
+  'Support for more FPGA boards': 'The same engines on more boards beyond the Tang Nano 20K.',
   'The full NetSilcon-Studio toolchain': 'Train any network, pick any FPGA, generate the hardware.',
   'A chip on a shared multi-project wafer (MPW)': 'The long-term goal: a real NetSilcon die.',
 };
 ---
-<Base title="Roadmap" description="NetSilcon roadmap: from a neural network on FPGA (done) to SPI, flash storage, real sensors, NetSilcon-64x6 and a multi-project-wafer chip." crumbs={[{ name: 'Roadmap', path: '/roadmap/' }]}>
+<Base title="Roadmap" description="NetSilcon roadmap: two neural network engines on FPGA done (6x4 and 64x6), next SPI, flash storage, real sensors, more boards and a multi-project-wafer chip." crumbs={[{ name: 'Roadmap', path: '/roadmap/' }]}>
   <div class="wrap">
     <header class="pagehd">
       <div>
@@ -37,7 +40,7 @@ const detail: Record<string, string> = {
         <li>Not tested with real sensors yet. Real LiDAR noise, reflections and motor behaviour are still untested.</li>
         <li>Uploaded models live in registers. At power-off the built-in model comes back.</li>
         <li>The rover's safety stop and supervisor run on the PC in the simulator for now. They are designed to move into the FPGA.</li>
-        <li>The network is deliberately small, 170 parameters. It suits sensor-level decisions, not vision or language.</li>
+        <li>The networks are deliberately small: 170 parameters (6x4) and about 23,000 (64x6). They suit sensor-level decisions, not vision or language.</li>
       </ul>
     </section>
   </div>

@@ -1,6 +1,6 @@
 // Single source of truth for every number on the site.
 // basis: 'M' = measured on the FPGA reference, 'E' = estimate (tool or datasheet), 'T' = design target, not built.
-// Sources: NetSilcon-6x4 repo (README, docs/results.md, docs/benchmarks.md, docs/architecture.md)
+// Sources: NetSilcon-FPGA repo, NetSilcon-Models/NetSilcon-6x4 (README, docs/results.md, docs/benchmarks.md, docs/architecture.md)
 // and the NetSilcon-6x4 preliminary datasheet, Rev 0.1.
 
 export type Basis = 'M' | 'E' | 'T';
@@ -145,7 +145,7 @@ export const pins: { n: number; name: string; type: string; desc: string }[] = [
 export const roadmap = [
   {
     phase: 'Done', state: 'done',
-    items: ['FPGA prototype on the Tang Nano 20K', 'Three jobs on one bitstream, 576/576 bit-exact each', 'CRC-safe model upload with atomic swap', 'Hardware-in-the-loop: 9,600 decisions, 0 mismatches'],
+    items: ['FPGA prototype on the Tang Nano 20K', 'Three jobs on one bitstream, 576/576 bit-exact each', 'CRC-safe model upload with atomic swap', 'Hardware-in-the-loop: 9,600 decisions, 0 mismatches', 'NetSilcon-64x6: 16 → 64×6 → 16 on the same board, 448 clocks', 'Trained 64x6 rover controller: 19,200 HIL decisions, 0 mismatches'],
   },
   {
     phase: 'Next', state: 'next',
@@ -153,7 +153,7 @@ export const roadmap = [
   },
   {
     phase: 'Later', state: 'later',
-    items: ['NetSilcon-64x6: 16 → 64×6 → 16, in design', 'The full NetSilcon-Studio toolchain', 'A chip on a shared multi-project wafer (MPW)'],
+    items: ['More network shapes and trained models', 'Support for more FPGA boards', 'The full NetSilcon-Studio toolchain', 'A chip on a shared multi-project wafer (MPW)'],
   },
 ];
 
@@ -161,9 +161,105 @@ export const roadmap = [
 export const applications = [
   { id: 'motor', icon: 'motor', title: 'ESC / motor fault detection', inputs: ['Motor current (20 A FS)', 'Supply voltage (30 V FS)', 'Speed (6 000 rpm FS)', 'Temperature (120 °C FS)'], decides: 'HEALTHY or FAULT. DOUT0 can disable the gate driver directly.', status: 'Model file: motor_fault.json · 94.5 % int8 accuracy · 576/576 bit-exact', model: true },
   { id: 'irrigation', icon: 'drop', title: 'Irrigation controller', inputs: ['Soil moisture', 'Air temperature', 'Air humidity', 'Sunlight'], decides: 'SKIP or WATER now.', status: 'Model file: irrigation.json · 97.4 % int8 accuracy · 576/576 bit-exact', model: true },
-  { id: 'rover', icon: 'rover', title: 'Robot obstacle decisions', inputs: ['Range front-left', 'Range front-right', 'Range rear-left', 'Range rear-right'], decides: 'Speed and steering, each −1…+1.', status: 'Model file: rover.json (v2) · 9,600 HIL decisions, 0 mismatches', model: true },
+  { id: 'rover', icon: 'rover', title: 'Robot obstacle decisions', inputs: ['Range front-left', 'Range front-right', 'Range rear-left', 'Range rear-right'], decides: 'Speed and steering, each −1…+1.', status: 'Model file: rover.json (v2) · 9,600 HIL decisions, 0 mismatches. NetSilcon-64x6 version with 16 LiDAR sectors: 19,200 HIL decisions, 0 mismatches', model: true },
   { id: 'bms', icon: 'battery', title: 'BMS cell anomaly', inputs: ['Cell voltage deviation', 'dV/dt', 'Cell temperature', 'Temperature rise rate'], decides: 'Normal or ANOMALY, as an early warning.', status: 'Example input set · train on your own data', model: false },
   { id: 'pump', icon: 'pump', title: 'Pump cavitation and dry run', inputs: ['Motor current', 'Current ripple', 'Outlet pressure', 'Vibration RMS'], decides: 'Normal or CAVITATION.', status: 'Example input set · train on your own data', model: false },
   { id: 'fan', icon: 'fan', title: 'Fan and spindle health', inputs: ['Vibration RMS', 'Vibration peak', 'Speed', 'Temperature'], decides: 'OK or MAINTENANCE NEEDED.', status: 'Example input set · train on your own data', model: false },
   { id: 'fusion', icon: 'fusion', title: 'Sensor fusion and plausibility', inputs: ['Any 4 related readings, for example two sensors measuring the same quantity plus context'], decides: 'Plausible or SUSPECT, beside a safety MCU.', status: 'Idea · no example input set yet', model: false },
 ];
+
+// ---------------------------------------------------------------- NetSilcon-64x6
+// Sources: NetSilcon-FPGA repo, NetSilcon-Models/NetSilcon-64x6: docs/test_report.md (22 Nov 2026),
+// models/rover/README.md, results/results_rover64.txt, results/results_hil64.txt, results/logs/.
+
+/** The model family, for comparison tables */
+export const family = [
+  { k: 'Network', a: '4 → 6 → 6 → 6 → 6 → 2', b: '16 → 64 → 64 → 64 → 64 → 64 → 64 → 16' },
+  { k: 'Parameters', a: '144 weights, 26 biases, 5 shifts', b: '22,528 weights, 400 biases, 7 shifts' },
+  { k: 'Model upload', a: '201 bytes, CRC-16, 31 ms', b: '23,335 bytes, CRC-32, 2.04 s' },
+  { k: 'Weights live in', a: 'registers', b: '32 block RAMs, two banks' },
+  { k: 'Multipliers', a: '72, two phases', b: '64 MAC lanes (DSP 16 / 24)' },
+  { k: 'Latency (27 MHz)', a: '15 clocks = 0.556 µs', b: '448 clocks = 16.6 µs' },
+  { k: 'Hardware vs Python', a: '576 / 576 vectors per app, bit-exact', b: '3,200 vectors, bit-exact' },
+  { k: 'Hardware-in-the-loop', a: '9,600 rover decisions, 0 mismatches', b: '19,200 rover decisions, 0 mismatches' },
+  { k: 'Trained applications', a: 'motor fault, irrigation, rover', b: 'rover (16 LiDAR sectors)' },
+];
+
+export const proof64 = [
+  { value: 448, unit: 'clk', label: 'latency, every inference · 16.6 µs at 27 MHz', basis: 'M' as Basis },
+  { value: 22528, unit: '', label: 'int8 weights, reloadable over UART', basis: 'M' as Basis, sep: true },
+  { value: 19200, unit: '', label: 'hardware-in-the-loop rover decisions, 0 mismatches', basis: 'M' as Basis, sep: true },
+  { value: 31, unit: '×', label: 'fewer clock cycles than a laptop CPU (best C code)', basis: 'M' as Basis },
+];
+
+export const specGroups64: { title: string; rows: Spec[] }[] = [
+  {
+    title: 'Network',
+    rows: [
+      { k: 'Shape', v: '16 → 64 → 64 → 64 → 64 → 64 → 64 → 16, fully connected', basis: 'M' },
+      { k: 'Activation', v: 'ReLU in the 6 hidden layers', basis: 'M' },
+      { k: 'Weights', v: '22,528 × int8', basis: 'M' },
+      { k: 'Biases', v: '400 × int16', basis: 'M' },
+      { k: 'Layer shifts', v: '7, each 0…23, round half up', basis: 'M' },
+      { k: 'Accumulator', v: '24-bit signed', basis: 'M' },
+      { k: 'Compute', v: '64 MAC lanes, one input broadcast per clock', basis: 'M' },
+    ],
+  },
+  {
+    title: 'Timing (27 MHz)',
+    rows: [
+      { k: 'Inference latency', v: '448 clock cycles = 16.6 µs, every time (hardware counter)', basis: 'M' },
+      { k: 'Multiply-adds per clock', v: '50.3 average', basis: 'M' },
+      { k: 'Model upload, UART', v: '23,340-byte frame in 2.04 s', basis: 'M' },
+      { k: 'Model swap', v: 'one clock, only after a good CRC-32', basis: 'M' },
+      { k: 'Fmax (Gowin timing)', v: '61.5 MHz, 0 setup / 0 hold violations', basis: 'E' },
+    ],
+  },
+  {
+    title: 'Memory and model image',
+    rows: [
+      { k: 'Weight memory', v: '32 block RAMs (1K × 16), two lanes per RAM', basis: 'M' },
+      { k: 'Banks', v: 'bank 0 = built-in model, bank 1 = upload slot', basis: 'M' },
+      { k: 'Image', v: '23,335 bytes + CRC-32', basis: 'M' },
+      { k: 'Bad image', v: 'refused; the running model keeps going', basis: 'M' },
+    ],
+  },
+  {
+    title: 'Verification',
+    rows: [
+      { k: 'Simulation', v: '1,200 vectors, 0 mismatches; requantizer 21,216 values', basis: 'M' },
+      { k: 'Board design over UART (sim)', v: '168 checks, 0 errors', basis: 'M' },
+      { k: 'Mutation tests', v: 'engine 6 / 6, loader and top 5 / 5 bugs caught', basis: 'M' },
+      { k: 'On the FPGA', v: '1,000 golden + 2,000 random vectors, 0 mismatches', basis: 'M' },
+      { k: 'FPGA resources', v: 'logic 35 %, BSRAM 32 / 46, DSP 16 / 24', basis: 'M' },
+    ],
+  },
+];
+
+export const cycles64 = [
+  { impl: 'NetSilcon-64x6 on FPGA', clock: '27 MHz', time: '16.6 µs', cycles: '448', macs: '50.3', us: true },
+  { impl: 'Laptop CPU i7-13650HX, C -O3 SIMD', clock: '4.09 GHz', time: '3.45 µs', cycles: '≈ 14,100', macs: '1.6' },
+  { impl: 'Laptop CPU, C -O2', clock: '4.09 GHz', time: '7.5 µs', cycles: '≈ 30,700', macs: '0.73' },
+  { impl: 'NumPy, one input at a time', clock: '4.09 GHz', time: '62.6 µs', cycles: '≈ 256,000', macs: '–' },
+  { impl: 'Plain Python', clock: '4.09 GHz', time: '3,023 µs', cycles: '≈ 12.4 million', macs: '–' },
+];
+
+export const rover64 = {
+  crc: '3A81C867',
+  agreement: '89.8 %',
+  sim: [
+    { who: 'NetSilcon-64x6 network + supervisor', set: '80 drives, 4 standard worlds', crash: '0 / 80', stuck: '0 / 80', dist: '46.9 m', us: true },
+    { who: '64x6 network + supervisor, 2 cm sensor noise', set: '80 drives', crash: '0 / 80', stuck: '0 / 80', dist: '46.4 m' },
+    { who: 'Hand-written rules (the teacher)', set: '80 drives', crash: '0 / 80', stuck: '0 / 80', dist: '47.7 m' },
+    { who: 'NetSilcon-64x6 network + supervisor', set: '40 new random worlds', crash: '0 / 40', stuck: '1 / 40', dist: '37.9 m', us: true },
+    { who: 'NetSilcon-6x4 rover v2 + supervisor', set: '40 new random worlds', crash: '0 / 40', stuck: '0 / 40', dist: '33.3 m' },
+  ],
+  hil: [
+    { k: 'FPGA inferences', v: '19,200 (8 drives × 2,400 steps)' },
+    { k: 'Mismatches with the Python model', v: '0' },
+    { k: 'Chip latency', v: '448 clocks on every step' },
+    { k: 'USB round trip', v: '15.3 ms average, 17.8 ms maximum' },
+    { k: 'Drives', v: '8: 0 crashes, 0 stuck, 48.1 m per drive' },
+    { k: 'Repeat run', v: 'identical inputs and outputs on all 19,200 steps' },
+  ],
+};

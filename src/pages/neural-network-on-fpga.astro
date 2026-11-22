@@ -18,6 +18,7 @@ const faq = [
   { q: 'Which FPGA do I need for a small neural network?', a: 'Small networks fit low-cost FPGAs. NetSilcon-6x4 uses 49 % of the logic, 24 of 24 DSP blocks and one block RAM of a Gowin GW2AR-18 on a Sipeed Tang Nano 20K board. The limiting resource is usually the number of hardware multipliers.' },
   { q: 'Do I need floating point on the FPGA?', a: 'No. Most FPGA neural networks use integers. Train in floating point, then quantize to int8 weights, wider integer biases and a scaling shift per layer. If the hardware and a software model use exactly the same integer maths, you can check the FPGA bit for bit.' },
   { q: 'Verilog or HLS for a neural network on FPGA?', a: 'Both work. High-level synthesis tools turn C++ or Python models into hardware and are quick for exploring larger networks. Hand-written Verilog gives exact control over every multiplier and clock cycle, which suits a small, fixed network that must meet a tight latency. NetSilcon is written in Verilog.' },
+  { q: 'Can a small FPGA run a bigger neural network?', a: 'Yes, if the weights live in block RAM and the multipliers are reused across layers. NetSilcon-64x6 runs a 16 → 64×6 → 16 int8 network with 22,528 weights on the same Tang Nano 20K: 448 clock cycles per inference, using 35 % of the logic, 32 of 46 block RAMs and 16 of 24 DSP blocks.' },
   { q: 'Can I change the neural network after the FPGA is programmed?', a: 'You can change the weights without re-synthesis if the design keeps them in writable registers or memory. NetSilcon loads a new 201-byte model over UART in about 31 ms, checks its CRC-16 and swaps it in within 7.4 µs. Changing the network shape needs a new bitstream.' },
 ];
 
@@ -31,7 +32,7 @@ const jsonld = [
     image: new URL(u('/og.png'), Astro.site).toString(),
     author: { '@type': 'Person', name: SITE.author },
     datePublished: '2026-11-21',
-    dateModified: '2026-11-21',
+    dateModified: '2026-11-22',
     inLanguage: 'en',
     about: ['Neural network', 'FPGA', 'int8 quantization', 'Verilog'],
   },

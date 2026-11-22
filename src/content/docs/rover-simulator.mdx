@@ -4,7 +4,7 @@ description: "A 2D rover with a LiDAR, driven by the NetSilcon network: in pure 
 order: 5
 ---
 
-`rover_sim/` holds a 2D simulator of a car-like (Ackermann) rover with a 360° LiDAR, reduced to 4 corner sectors. The `rover.json` network drives it.
+`python/rover_sim/` (in the NetSilcon-6x4 folder) holds a 2D simulator of a car-like (Ackermann) rover with a 360° LiDAR, reduced to 4 corner sectors. The `rover.json` network drives it.
 
 ## The controller
 
@@ -22,7 +22,7 @@ In the simulator these run on the PC. They are designed to move into the FPGA ne
 ## Run it in Python
 
 ```bash
-cd rover_sim
+cd python/rover_sim
 python rover_sim.py --sensors scanner --unstick            # 20 random starts × 4 worlds
 python rover_sim.py --sensors scanner --unstick --view     # watch one drive (needs matplotlib)
 python rover_sim.py --compare                              # all 4 combinations
@@ -32,7 +32,7 @@ Useful options: `--map` (one world), `--runs`, `--seconds`, `--noise 0.02` (sens
 
 ## Results in simulation
 
-80 simulated drives per setup: 20 starts × 4 worlds × 90 s. From `rover_sim/batch_results.txt`.
+80 simulated drives per setup: 20 starts × 4 worlds × 90 s. From `results/rover_batch_results.txt`.
 
 | Setup | Crashes | Stuck | Avg distance |
 |---|---|---|---|

@@ -149,13 +149,15 @@ tr.us td:first-child { box-shadow: inset 3px 0 0 var(--acc); }
 .cols > *:first-child { border-left: 0; padding-left: 0; }
 .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 900px) {
   .cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cols-4 > :nth-child(3) { border-left: 0; padding-left: 0; }
   .cols-4 > :nth-child(n+3) { border-top: 1px solid var(--rule); }
 }
 @media (max-width: 700px) {
-  .cols-3 { grid-template-columns: minmax(0, 1fr); }
+  .cols-2, .cols-3 { grid-template-columns: minmax(0, 1fr); }
+  .cols-2 > * { border-left: 0; padding-left: 0; padding-right: 0; }
   .cols-3 > * { border-left: 0; padding-left: 0; padding-right: 0; }
   .cols-3 > * + * { border-top: 1px solid var(--rule); }
 }
@@ -224,3 +226,7 @@ tr.us .logbar i { background: var(--acc); }
 @keyframes lit { 0%, 100% { fill-opacity: 0; } 18% { fill-opacity: 1; } 42% { fill-opacity: 0; } }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* shared helpers */
+.more { margin: 18px 0 0; font-size: 15px; }
+.more a { text-decoration: none; color: var(--acc); font-weight: 600; }

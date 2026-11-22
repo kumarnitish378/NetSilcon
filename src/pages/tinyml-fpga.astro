@@ -1,0 +1,86 @@
+---
+import Guide from '../layouts/Guide.astro';
+import SecHead from '../components/SecHead.astro';
+import Tag from '../components/Tag.astro';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const faq = [
+  { q: 'What is TinyML on FPGA?', a: 'TinyML means running small machine-learning models on low-power edge hardware. On an FPGA, the model\'s multiply-adds become circuits instead of instructions, so the answer comes in a fixed, short number of clock cycles. NetSilcon is an open-source example: int8 networks with loadable weights on a Tang Nano 20K.' },
+  { q: 'Is an FPGA better than a microcontroller for TinyML?', a: 'For latency and energy per inference, often yes. On the same 170-parameter network, NetSilcon-6x4 answers in 0.556 µs (measured) where an STM32F407 needs an estimated 14–21 µs, and the estimated energy per inference is 24–36 times lower. A microcontroller is cheaper, simpler and more flexible, so the best design often uses both: the MCU for control, the FPGA or a NetSilcon-style IC for the decision.' },
+  { q: 'Do I need to quantize my model for an FPGA?', a: 'Yes, almost always. Train in floating point, then convert to int8 weights, int16 biases and one power-of-two shift per layer. Integer maths maps directly onto FPGA multipliers, and a bit-exact Python model lets you check every hardware answer.' },
+  { q: 'Can a TinyML model on an FPGA be updated in the field?', a: 'Yes, if the design keeps the weights in writable memory. Both NetSilcon engines accept a new model over UART with a CRC check and swap it in only when the check passes, so a bad update never stops the device.' },
+  { q: 'What kind of TinyML jobs fit a small FPGA?', a: 'Sensor-level decisions: motor or pump fault detection, battery-cell anomaly warnings, vibration health checks, obstacle decisions on a robot. Image, audio and language models are better served by an NPU or GPU.' },
+];
+---
+<Guide
+  path="/tinyml-fpga/"
+  title="TinyML on FPGA: when it beats a microcontroller."
+  fullTitle="TinyML on FPGA vs microcontroller: latency, energy, workflow · NetSilcon"
+  description="TinyML on FPGA vs microcontroller: measured latency, estimated energy per inference, int8 quantization workflow and field-updatable models, with open-source NetSilcon engines."
+  lede="Most TinyML runs on microcontrollers, and for many jobs that is the right call. But when a decision must come in a fixed microsecond-scale time, or energy per inference really matters, a small FPGA engine can do the same job in a fraction of the time. Here is how to tell which you need, with numbers."
+  updated="2026-11-22"
+  about={['TinyML', 'FPGA', 'Microcontroller', 'Edge AI', 'int8 quantization']}
+  toc={[{ id: 'idea', label: 'Instructions vs circuits' }, { id: 'compare', label: 'FPGA vs MCU, measured' }, { id: 'choose', label: 'How to choose' }, { id: 'workflow', label: 'The workflow' }]}
+  faq={faq}
+  related={[{ href: '/benchmarks/', label: 'Benchmarks and method' }, { href: '/applications/', label: 'Applications: sensor decisions that fit' }, { href: '/docs/train-your-own-model/', label: 'Train your own model' }, { href: '/fpga-ai-accelerator/', label: 'FPGA AI accelerator guide' }]}
+>
+  <section class="sec" aria-labelledby="idea">
+    <SecHead no="§1" title="Instructions versus circuits." id="idea" />
+    <div class="prose guide-prose">
+      <p>A microcontroller runs a neural network as a loop: load a weight, load an input, multiply, add, repeat. Even with SIMD helpers like CMSIS-NN, a tiny network costs thousands of clock cycles, and the time can vary with interrupts and caches.</p>
+      <p>An FPGA builds the loop body as hardware. NetSilcon-6x4 has 72 multipliers working at once, so its whole 4 → 6 → 6 → 6 → 6 → 2 network takes <b>15 clock cycles, every time</b> <Tag b="M" />. NetSilcon-64x6 runs 64 multiply-accumulate lanes in parallel and finishes a 22,528-weight network in <b>448 cycles</b> <Tag b="M" />.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="compare">
+    <SecHead no="§2" title="FPGA versus microcontroller, on the same network." id="compare">NetSilcon-6x4's 170-parameter int8 network, batch size 1. Each figure says how it was obtained.</SecHead>
+    <div class="tbl-wrap guide-tbl">
+      <table class="stack">
+        <thead><tr><th>Hardware</th><th>Latency per inference</th><th>Energy per inference</th><th>How it was obtained</th></tr></thead>
+        <tbody>
+          <tr class="us"><td data-l="Hardware"><b>NetSilcon-6x4</b>, Tang Nano 20K, 27 MHz</td><td data-l="Latency" class="num">0.556 µs <Tag b="M" /></td><td data-l="Energy" class="num">≈ 78 nJ <Tag b="E" /></td><td data-l="How" class="small">latency measured; power from the Gowin estimate</td></tr>
+          <tr><td data-l="Hardware"><b>STM32F407</b>, Cortex-M4, 168 MHz</td><td data-l="Latency" class="num">14–21 µs <Tag b="E" /></td><td data-l="Energy" class="num">1.8–2.8 µJ <Tag b="E" /></td><td data-l="How" class="small">instructions counted in an emulator; ST datasheet power</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">About 25× faster and 24–36× less energy per inference. The microcontroller figures are not yet measured on a real STM32; that measurement is on the <a href={u('/roadmap/')}>roadmap</a>. <a href={u('/benchmarks/')}>Full method →</a></p>
+  </section>
+
+  <section class="sec" aria-labelledby="choose">
+    <SecHead no="§3" title="How to choose." id="choose" />
+    <div class="cols cols-2">
+      <div>
+        <span class="step-no">pick the microcontroller</span>
+        <ul class="mut">
+          <li>Decisions every few milliseconds are fast enough</li>
+          <li>You need the lowest bill of materials</li>
+          <li>The model changes shape often</li>
+          <li>Your team only writes C</li>
+        </ul>
+      </div>
+      <div>
+        <span class="step-no">pick an FPGA engine</span>
+        <ul class="mut">
+          <li>The answer must come in microseconds, with zero jitter</li>
+          <li>The decision should act directly, for example switch off a motor driver</li>
+          <li>Energy per inference matters more than idle power</li>
+          <li>The shape is stable but the model should be updatable in the field</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="workflow">
+    <SecHead no="§4" title="The TinyML-to-FPGA workflow." id="workflow" />
+    <div class="prose guide-prose">
+      <ol>
+        <li><b>Describe the job:</b> name the inputs, their ranges and the decision. NetSilcon-6x4 takes 4 inputs and 2 outputs; NetSilcon-64x6 takes 16 and 16.</li>
+        <li><b>Train</b> in floating point with plain numpy (no framework needed).</li>
+        <li><b>Quantize</b> to int8 weights, int16 biases and one shift per layer; check the integer model against the float model.</li>
+        <li><b>Pack</b> the model file: weights, biases, shifts, CRC and golden test vectors.</li>
+        <li><b>Upload and test</b> on the board: every golden vector must match bit for bit.</li>
+      </ol>
+      <p><a href={u('/docs/train-your-own-model/')}>Train your own model, step by step →</a></p>
+    </div>
+  </section>
+</Guide>

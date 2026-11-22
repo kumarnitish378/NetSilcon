@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import SecHead from '../components/SecHead.astro';
 import Tag from '../components/Tag.astro';
-import { repoTree } from '../config';
+import { repoTree, M6X4 } from '../config';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 const steps = [
@@ -45,22 +45,22 @@ const steps = [
     </section>
 
     <section class="sec" aria-labelledby="cli">
-      <SecHead no="§2 Command line" title="The tools, as they are in the repository." id="cli">Replace <code>COM7</code> with your board's port (Device Manager → Ports on Windows, <code>/dev/ttyUSB1</code> on Linux).</SecHead>
+      <SecHead no="§2 Command line" title="The tools, as they are in the repository." id="cli">Run from <code>NetSilcon-FPGA/NetSilcon-Models/NetSilcon-6x4/</code>. Replace <code>COM7</code> with your board's port (Device Manager → Ports on Windows, <code>/dev/ttyUSB1</code> on Linux).</SecHead>
       <div class="cli">
         <div>
           <h3>Make a model</h3>
-          <p class="mut">Add your job to <code>model/apps.py</code>: input names, units and ranges, output labels, a data generator and demo scenarios. Then train, quantize and pack in one go:</p>
-<pre><code>cd model
-python make_model.py irrigation     # writes models/irrigation.json
+          <p class="mut">Add your job to <code>python/model/apps.py</code>: input names, units and ranges, output labels, a data generator and demo scenarios. Then train, quantize and pack in one go:</p>
+<pre><code>cd python/model
+python make_model.py irrigation     # writes models/irrigation/irrigation.json
 python make_model.py motor_fault    # packages the built-in model</code></pre>
         </div>
         <div>
           <h3>Talk to the chip</h3>
-          <p class="mut">Every run writes a <code>.log</code> and a <code>.csv</code> to <code>host/logs/</code>.</p>
-<pre><code>cd host
+          <p class="mut">Every run writes a <code>.log</code> and a <code>.csv</code> to <code>results/logs/host/</code>.</p>
+<pre><code>cd python/host
 python netsilcon_host.py COM7 --info
-python netsilcon_host.py COM7 --load ../models/irrigation.json --corrupt   # must be REFUSED
-python netsilcon_host.py COM7 --load ../models/irrigation.json
+python netsilcon_host.py COM7 --load ../../models/irrigation/irrigation.json --corrupt   # must be REFUSED
+python netsilcon_host.py COM7 --load ../../models/irrigation/irrigation.json
 python netsilcon_host.py COM7 --values 10 24 3500 65
 python netsilcon_host.py COM7 --demo
 python netsilcon_host.py COM7 --test                                       # 576 vectors, bit-exact
@@ -69,7 +69,7 @@ python netsilcon_host.py COM7 --interactive</code></pre>
         <div>
           <h3>Drive a rover</h3>
           <p class="mut">Simulated drives, or let the real FPGA make every decision:</p>
-<pre><code>cd rover_sim
+<pre><code>cd python/rover_sim
 python rover_sim.py --sensors scanner --unstick         # 20 starts × 4 worlds
 python rover_sim.py --hil COM7 --map clutter --view     # the real FPGA drives
 python rover_sim.py --hil COM7 --noise 0.02             # with ±2 cm sensor noise</code></pre>
@@ -77,12 +77,12 @@ python rover_sim.py --hil COM7 --noise 0.02             # with ±2 cm sensor noi
         <div>
           <h3>Simulate and build the hardware</h3>
           <p class="mut">No board needed for simulation; you need Icarus Verilog.</p>
-<pre><code>bash scripts/run_all_tests.sh                   # network, UART, model upload
-bash scripts/build_opensource.sh uart           # → build/netsilcon_uart.fs
-openFPGALoader -b tangnano20k build/netsilcon_uart.fs</code></pre>
+<pre><code>bash fpga/scripts/run_all_tests.sh              # network, UART, model upload
+bash fpga/scripts/build_opensource.sh uart      # → fpga/build/netsilcon_uart.fs
+openFPGALoader -b tangnano20k fpga/build/netsilcon_uart.fs</code></pre>
         </div>
       </div>
-      <p class="more"><a href={u('/docs/train-your-own-model/')}>Train your own model, step by step →</a> &nbsp; <a href={repoTree('model')} rel="noopener">model/ on GitHub →</a></p>
+      <p class="more"><a href={u('/docs/train-your-own-model/')}>Train your own model, step by step →</a> &nbsp; <a href={repoTree(M6X4 + 'python/model')} rel="noopener">python/model/ on GitHub →</a></p>
     </section>
 
     <section class="sec" aria-labelledby="vision">

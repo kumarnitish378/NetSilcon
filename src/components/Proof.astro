@@ -1,10 +1,13 @@
 ---
-import { proof } from '../data/facts';
+import { proof, type Basis } from '../data/facts';
 import Tag from './Tag.astro';
+interface Item { value: number; unit: string; label: string; basis: Basis; sep?: boolean }
+interface Props { items?: Item[] }
+const items = Astro.props.items ?? proof;
 const fmt = (n: number, sep?: boolean) => (sep ? n.toLocaleString('en-US') : String(n));
 ---
 <div class="cols cols-4 proof">
-  {proof.map((p) => (
+  {items.map((p) => (
     <div>
       <div class="v"><span class="cu" data-to={p.value} data-sep={p.sep ? '1' : '0'}>{fmt(p.value, p.sep)}</span>{p.unit && <small>{p.unit}</small>}</div>
       <div class="k">{p.label}<Tag b={p.basis} /></div>

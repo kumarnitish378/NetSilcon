@@ -50,7 +50,7 @@ The image layout and CRC are described in [Model image format](/docs/model-image
 | PC → FPGA | `C5` |
 | FPGA → PC | `5C crc_lo crc_hi source loads` |
 
-`source`: `0` = the built-in model from the bitstream (the CRC then reads `0000`; the host tool computes the built-in CRC itself from `gen/`), `1` = an uploaded model, whose CRC-16 is reported.
+`source`: `0` = the built-in model from the bitstream (the CRC then reads `0000`; the host tool computes the built-in CRC itself from `fpga/gen/`), `1` = an uploaded model, whose CRC-16 is reported.
 
 ## LEDs (active low)
 

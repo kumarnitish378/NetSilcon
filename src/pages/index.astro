@@ -6,8 +6,8 @@ import SecHead from '../components/SecHead.astro';
 import BenchTable from '../components/BenchTable.astro';
 import Icon from '../components/Icon.astro';
 import Tag from '../components/Tag.astro';
-import { applications, roadmap } from '../data/facts';
-import { SITE } from '../config';
+import { applications, roadmap, family } from '../data/facts';
+import { SITE, useCaseUrl } from '../config';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 ---
@@ -62,8 +62,19 @@ const u = (p: string) => `${base}${p}`;
       <p class="more"><a href={u('/technology/')}>How it works, step by step →</a> &nbsp; <a href={u('/neural-network-on-fpga/')}>Guide: how a neural network on an FPGA works →</a></p>
     </section>
 
+    <section class="sec" aria-labelledby="models">
+      <SecHead no="§2 Models" title="Two engines on one small FPGA board. More on the way." id="models">Both run on the Sipeed Tang Nano 20K, both are bit-exact with their Python model, and both take a new job from a file upload. NetSilcon-6x4 is the small, very fast one; NetSilcon-64x6 has about 130 times more parameters.</SecHead>
+      <div class="tbl-wrap">
+        <table class="stack">
+          <thead><tr><th></th><th><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4</a></th><th><a href={u('/netsilcon-64x6/')}>NetSilcon-64x6</a></th></tr></thead>
+          <tbody>{family.map((f) => <tr><th scope="row" data-l="">{f.k}</th><td data-l="6x4">{f.a}</td><td data-l="64x6">{f.b}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="more"><a href={u('/netsilcon-64x6/')}>NetSilcon-64x6: 22,528 weights, 448 clocks, a self-driving rover →</a></p>
+    </section>
+
     <section class="sec" aria-labelledby="cmp">
-      <SecHead no="§2 Comparison" title="Same int8 network, five kinds of hardware." id="cmp">Batch 1, the way a sensor-side decision is made. Every row says how its number was obtained.</SecHead>
+      <SecHead no="§3 Comparison" title="Same int8 network, five kinds of hardware." id="cmp">Batch 1, the way a sensor-side decision is made. Every row says how its number was obtained.</SecHead>
       <BenchTable />
       <div class="cmpnote">
         <p><b class="num">≈ 25×</b> faster and <b class="num">24–36×</b> less energy per inference than the STM32F407 that would normally sit in the device.</p>
@@ -73,7 +84,7 @@ const u = (p: string) => `${base}${p}`;
     </section>
 
     <section class="sec" aria-labelledby="uses">
-      <SecHead no="§3 Use cases" title="Small, fast, repeatable decisions next to a sensor." id="uses">Any job with 4 inputs and 2 outputs fits. Three have trained model files today; the others are example input sets from the datasheet.</SecHead>
+      <SecHead no="§4 Use cases" title="Small, fast, repeatable decisions next to a sensor." id="uses">Any job with 4 inputs and 2 outputs fits. Three have trained model files today; the others are example input sets from the datasheet.</SecHead>
       <div class="cardgrid">
         {applications.slice(0, 6).map((a) => (
           <a class="usecard" href={u(`/applications/#${a.id}`)}>
@@ -84,11 +95,11 @@ const u = (p: string) => `${base}${p}`;
           </a>
         ))}
       </div>
-      <p class="more"><a href={u('/applications/')}>All applications →</a></p>
+      <p class="more"><a href={u('/applications/')}>All applications →</a>{useCaseUrl && <> &nbsp; <a href={useCaseUrl} rel="noopener">Suggest a use case on LinkedIn →</a></>}</p>
     </section>
 
     <section class="sec" aria-labelledby="status">
-      <SecHead no="§4 Status" title="What is proven, and what is still a target." id="status">NetSilcon is a working FPGA prototype, not a fabricated chip. Numbers on this site carry a label so you always know which is which.</SecHead>
+      <SecHead no="§5 Status" title="What is proven, and what is still a target." id="status">NetSilcon is a working FPGA prototype, not a fabricated chip. Numbers on this site carry a label so you always know which is which.</SecHead>
       <div class="status2">
         <div class="panel pad">
           <h3>Proven on the FPGA reference <Tag b="M" /></h3>
@@ -98,6 +109,7 @@ const u = (p: string) => `${base}${p}`;
             <li>Three jobs on one bitstream: motor-fault detector, irrigation controller, rover driver</li>
             <li>576 / 576 bit-exact results for each job</li>
             <li>The real FPGA drove a simulated rover for 9,600 decisions: 0 mismatches, 0 crashes, also with ±2 cm sensor noise</li>
+            <li>NetSilcon-64x6: 22,528 loadable weights, 448 clocks per inference, 3,200 vectors bit-exact; its trained rover controller made 19,200 decisions in the loop, 0 mismatches</li>
           </ul>
         </div>
         <div class="panel pad tgtpanel">
@@ -113,7 +125,7 @@ const u = (p: string) => `${base}${p}`;
     </section>
 
     <section class="sec" aria-labelledby="watch">
-      <SecHead no="§5 Watch" title="The two-minute keynote." id="watch" />
+      <SecHead no="§6 Watch" title="The two-minute keynote." id="watch" />
       <div class="video">
         <video controls preload="none" playsinline poster={u('/media/NetSilcon_Keynote.jpg')}>
           <source src={u('/media/NetSilcon_Keynote.mp4')} type="video/mp4" />
@@ -124,7 +136,7 @@ const u = (p: string) => `${base}${p}`;
     </section>
 
     <section class="sec" aria-labelledby="road">
-      <SecHead no="§6 Roadmap" title="From one FPGA board to a chip." id="road" />
+      <SecHead no="§7 Roadmap" title="From one FPGA board to a chip." id="road" />
       <div class="cols cols-3 road">
         {roadmap.map((r) => (
           <div class={r.state}>

@@ -16,15 +16,22 @@ This guide takes you from nothing to a NetSilcon-6x4 answering questions on a re
 | Icarus Verilog | only for simulation |
 | Gowin EDA (Education edition) *or* the open-source tools | to build the bitstream |
 
-Get the code: clone the NetSilcon-6x4 repository from GitHub (link on the [Downloads](/downloads/) page).
+Get the code: clone the [NetSilcon-FPGA](https://github.com/kumarnitish378/NetSilcon-FPGA) repository from GitHub and open the model folder:
+
+```bash
+git clone https://github.com/kumarnitish378/NetSilcon-FPGA.git
+cd NetSilcon-FPGA/NetSilcon-Models/NetSilcon-6x4
+```
+
+Every command below runs from that folder. NetSilcon-64x6 has the same layout; its README lists its own commands.
 
 ## Step 1 · Simulate, no board needed
 
 Simulation runs the Verilog on your PC and compares every result with the Python model.
 
 ```bash
-bash scripts/run_all_tests.sh        # network vs Python, live UART, model upload
-# Windows without bash:  scripts\run_sim.bat
+bash fpga/scripts/run_all_tests.sh   # network vs Python, live UART, model upload
+# Windows without bash:  fpga\scripts\run_sim.bat
 ```
 
 **Check:** every test ends with `RESULT: PASS`.
@@ -34,8 +41,8 @@ bash scripts/run_all_tests.sh        # network vs Python, live UART, model uploa
 ### Option A · Gowin EDA
 
 1. Create a new project for the device **GW2AR-LV18QN88C8/I7**.
-2. Add `rtl/*.v`, `board/ns_uart.v`, `board/ns_loader.v`, `board/tangnano20k_uart.v`, `board/tangnano20k_uart.cst` and `board/tangnano20k.sdc`.
-3. Set the top module to `tangnano20k_uart`, add `gen/` to the include path, and copy `gen/*.mem` into the project folder.
+2. Add `fpga/rtl/*.v`, `fpga/board/ns_uart.v`, `fpga/board/ns_loader.v`, `fpga/board/tangnano20k_uart.v`, `fpga/board/tangnano20k_uart.cst` and `fpga/board/tangnano20k.sdc`.
+3. Set the top module to `tangnano20k_uart`, add `fpga/gen/` to the include path, and copy `fpga/gen/*.mem` into the project folder.
 4. Run **Synthesize**, then **Place & Route**.
 
 **Check:** timing passes. The reference build reaches 29.1 MHz against the 27 MHz it needs.
@@ -44,7 +51,7 @@ bash scripts/run_all_tests.sh        # network vs Python, live UART, model uploa
 
 ```bash
 pip install yowasp-yosys yowasp-nextpnr-himbaechel-gowin apycula
-bash scripts/build_opensource.sh uart          # → build/netsilcon_uart.fs
+bash fpga/scripts/build_opensource.sh uart     # → fpga/build/netsilcon_uart.fs
 ```
 
 ## Step 3 · Load it on the board
@@ -56,7 +63,7 @@ SRAM programming is lost at power-off. That is fine for testing.
 
 **Check:** LED0 blinks as a heartbeat. LED5 may light at start-up if the USB bridge sends a stray byte while the FPGA configures; this is harmless.
 
-> Want a quick board test without a PC tool? `bash scripts/build_opensource.sh selftest` builds a stand-alone self-test that runs all golden vectors inside the FPGA and reports PASS or FAIL on the LEDs and the serial port.
+> Want a quick board test without a PC tool? `bash fpga/scripts/build_opensource.sh selftest` builds a stand-alone self-test that runs all golden vectors inside the FPGA and reports PASS or FAIL on the LEDs and the serial port.
 
 ## Step 4 · Talk to it
 
@@ -64,7 +71,7 @@ Find the board's serial port (Windows: Device Manager → Ports). Then:
 
 ```bash
 pip install pyserial
-cd host
+cd python/host
 python netsilcon_host.py COM7 --info                     # which model is running?
 python netsilcon_host.py COM7 --values 10 24 3500 65     # one reading in real units
 python netsilcon_host.py COM7 --test                     # 576 vectors, bit-exact
@@ -75,14 +82,14 @@ python netsilcon_host.py COM7 --test                     # 576 vectors, bit-exac
 ## Step 5 · Give it a new job
 
 ```bash
-python netsilcon_host.py COM7 --load ../models/irrigation.json --corrupt   # must be REFUSED
-python netsilcon_host.py COM7 --load ../models/irrigation.json             # LOADED
+python netsilcon_host.py COM7 --load ../../models/irrigation/irrigation.json --corrupt   # must be REFUSED
+python netsilcon_host.py COM7 --load ../../models/irrigation/irrigation.json   # LOADED
 python netsilcon_host.py COM7 --demo
 ```
 
 **Check:** the corrupted upload is refused and the old model keeps answering. The real upload replies `LOADED` with chip CRC `8F33`.
 
-Every run writes a `.log` and a `.csv` file to `host/logs/`, so you can compare your results with the reference logs in `docs/logs/`.
+Every run writes a `.log` and a `.csv` file to `results/logs/host/`, so you can compare your results with the reference logs in `results/logs/`.
 
 ## Next
 

@@ -15,6 +15,7 @@ const path = Astro.url.pathname.replace(base, '') || '/';
 const primary = [
   { href: '/technology/', label: 'Technology' },
   { href: '/netsilcon-6x4/', label: 'NetSilcon-6x4' },
+  { href: '/netsilcon-64x6/', label: 'NetSilcon-64x6' },
   { href: '/benchmarks/', label: 'Benchmarks' },
   { href: '/studio/', label: 'Studio' },
   { href: '/docs/', label: 'Docs' },
@@ -22,6 +23,10 @@ const primary = [
 ];
 const secondary = [
   { href: '/neural-network-on-fpga/', label: 'Neural network on FPGA: guide' },
+  { href: '/fpga-ai-accelerator/', label: 'FPGA AI accelerator' },
+  { href: '/verilog-neural-network/', label: 'Neural network in Verilog' },
+  { href: '/tang-nano-20k-neural-network/', label: 'Tang Nano 20K neural network' },
+  { href: '/tinyml-fpga/', label: 'TinyML on FPGA' },
   { href: '/applications/', label: 'Applications' },
   { href: '/roadmap/', label: 'Roadmap' },
   { href: '/news/', label: 'News' },
@@ -29,7 +34,7 @@ const secondary = [
   { href: '/about/', label: 'About & contact' },
 ];
 const abs = (p: string) => new URL(u(p), Astro.site).toString();
-const person = { '@type': 'Person', name: SITE.author, url: SITE.contact.github || undefined };
+const person = { '@type': 'Person', name: SITE.author, url: SITE.contact.linkedin || SITE.contact.github || undefined, sameAs: [SITE.contact.linkedin, SITE.contact.github].filter(Boolean) };
 const ld: Record<string, unknown>[] = [
   { '@context': 'https://schema.org', '@type': 'WebSite', name: 'NetSilcon', url: abs('/'), description: SITE.description, inLanguage: 'en', author: person },
   ...(crumbs && crumbs.length ? [{ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ name: 'Home', path: '/' }, ...crumbs].map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: abs(c.path) })) }] : []),
@@ -111,17 +116,22 @@ const current = (href: string) => (href === '/' ? path === '/' : path.startsWith
       <div class="foot-grid">
         <div>
           <a class="brand" href={u('/')} style="margin:0 0 10px"><Logo />NetSilcon</a>
-          <p style="max-width:40ch">An open-source neural network on FPGA, designed to become a chip. A fixed network shape with loadable numbers. A personal project by {SITE.author}.</p>
+          <p style="max-width:40ch">Open-source neural networks on FPGA, designed to become chips. Fixed network shapes with loadable numbers. A project by {SITE.author}.</p>
         </div>
         <div><h2>Product</h2><ul>
           <li><a href={u('/technology/')}>Technology</a></li>
           <li><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4</a></li>
+          <li><a href={u('/netsilcon-64x6/')}>NetSilcon-64x6</a></li>
           <li><a href={u('/benchmarks/')}>Benchmarks</a></li>
           <li><a href={u('/applications/')}>Applications</a></li>
           <li><a href={u('/roadmap/')}>Roadmap</a></li>
         </ul></div>
         <div><h2>Build</h2><ul>
           <li><a href={u('/neural-network-on-fpga/')}>Neural network on FPGA</a></li>
+          <li><a href={u('/fpga-ai-accelerator/')}>FPGA AI accelerator</a></li>
+          <li><a href={u('/verilog-neural-network/')}>Neural network in Verilog</a></li>
+          <li><a href={u('/tang-nano-20k-neural-network/')}>Tang Nano 20K neural network</a></li>
+          <li><a href={u('/tinyml-fpga/')}>TinyML on FPGA</a></li>
           <li><a href={u('/docs/')}>Docs</a></li>
           <li><a href={u('/studio/')}>NetSilcon-Studio</a></li>
           <li><a href={u('/playground/')}>Playground</a></li>
@@ -131,6 +141,7 @@ const current = (href: string) => (href === '/' ? path === '/' : path.startsWith
         <div><h2>Project</h2><ul>
           <li><a href={u('/news/')}>News</a></li>
           <li><a href={u('/about/')}>About & contact</a></li>
+          {SITE.contact.linkedin && <li><a href={SITE.contact.linkedin} rel="noopener">Suggest a use case</a></li>}
           <li><a href={u('/files/NetSilcon-6x4_Datasheet.pdf')}>Datasheet (PDF)</a></li>
           <li><a href={repo('LICENSE')} rel="noopener">Apache-2.0 licence</a></li>
         </ul></div>

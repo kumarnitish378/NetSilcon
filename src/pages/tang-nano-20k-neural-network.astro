@@ -1,0 +1,89 @@
+---
+import Guide from '../layouts/Guide.astro';
+import SecHead from '../components/SecHead.astro';
+import Tag from '../components/Tag.astro';
+import { repo, M6X4, M64X6 } from '../config';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const faq = [
+  { q: 'Can the Tang Nano 20K run a neural network?', a: 'Yes. Two open-source NetSilcon engines run on it today: NetSilcon-6x4 (144 weights, 15 clocks per inference) and NetSilcon-64x6 (22,528 weights in block RAM, 448 clocks per inference), both bit-exact with their Python model at 27 MHz.' },
+  { q: 'How big a neural network fits on the Tang Nano 20K?', a: 'The GW2AR-18 FPGA has 20,736 logic cells, 46 block RAMs and 24 DSP blocks in the Gowin report. NetSilcon-64x6 uses 35 % of the logic, 32 block RAMs and 16 DSP blocks for 22,528 int8 weights, so networks of tens of thousands of weights fit when the weights live in block RAM.' },
+  { q: 'Which tools do I need?', a: 'Gowin EDA (the free Education edition works) or the open-source yosys + nextpnr-himbaechel flow to build the bitstream, Python 3 with numpy and pyserial for the PC tools, and Icarus Verilog if you want to simulate first.' },
+  { q: 'How does the PC talk to the neural network on the board?', a: 'Over the USB-C cable: the board\'s USB bridge appears as a serial port (COM7 on our Windows PC, /dev/ttyUSB1 on Linux) at 115200 baud. The host tool sends inputs, reads answers, uploads models and checks every answer against the Python model.' },
+  { q: 'Do I need to rebuild the bitstream for a new model?', a: 'No. Program the bitstream once. After that a new model is a file upload: 31 ms for NetSilcon-6x4, about 2 s for NetSilcon-64x6, both protected by a CRC.' },
+];
+---
+<Guide
+  path="/tang-nano-20k-neural-network/"
+  title="Run a neural network on the Tang Nano 20K."
+  fullTitle="Tang Nano 20K neural network: run int8 AI on the Gowin GW2AR-18 · NetSilcon"
+  description="Run a neural network on the Sipeed Tang Nano 20K (Gowin GW2AR-18): two open-source int8 engines, resource use, build steps, model upload over USB and real results."
+  lede="The Sipeed Tang Nano 20K is a small, cheap Gowin FPGA board, and it is enough for real neural-network inference. Two open-source NetSilcon engines run on it today. This guide shows what fits, how to build and program it, and how to talk to the network from your PC."
+  updated="2026-11-22"
+  about={['Sipeed Tang Nano 20K', 'Gowin GW2AR-18', 'Neural network on FPGA', 'Edge AI']}
+  toc={[{ id: 'board', label: 'The board' }, { id: 'fits', label: 'What fits' }, { id: 'steps', label: 'Step by step' }, { id: 'uart', label: 'Talking over USB' }, { id: 'results', label: 'Results' }]}
+  faq={faq}
+  related={[{ href: '/docs/getting-started/', label: 'Getting started: NetSilcon-6x4 on the board' }, { href: '/netsilcon-64x6/', label: 'NetSilcon-64x6 on the Tang Nano 20K' }, { href: '/verilog-neural-network/', label: 'Neural network in Verilog' }, { href: '/tinyml-fpga/', label: 'TinyML on FPGA vs microcontroller' }]}
+>
+  <section class="sec" aria-labelledby="board">
+    <SecHead no="§1" title="The board." id="board" />
+    <div class="prose guide-prose">
+      <p>The Tang Nano 20K carries a Gowin <b>GW2AR-LV18QN88C8/I7</b> FPGA, a 27 MHz clock and a USB-C port with an onboard USB bridge (a BL616) that both programs the FPGA and gives you a serial port. For NetSilcon the important resources are the hardware multipliers (DSP blocks), the 46 block RAMs and the logic cells.</p>
+      <p>Pins used by both NetSilcon engines: 27 MHz clock on pin 4, UART on pins 69 (TX) and 70 (RX), and the onboard LEDs on pins 15–20 for status.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="fits">
+    <SecHead no="§2" title="What fits, measured from the Gowin build reports." id="fits" />
+    <div class="tbl-wrap guide-tbl">
+      <table class="stack">
+        <thead><tr><th></th><th>NetSilcon-6x4</th><th>NetSilcon-64x6</th></tr></thead>
+        <tbody>
+          <tr><th scope="row" data-l="">Network</th><td data-l="6x4">4 → 6×4 → 2, 144 weights</td><td data-l="64x6">16 → 64×6 → 16, 22,528 weights</td></tr>
+          <tr><th scope="row" data-l="">Logic</th><td data-l="6x4">49 %</td><td data-l="64x6">35 %</td></tr>
+          <tr><th scope="row" data-l="">DSP blocks</th><td data-l="6x4">24 / 24</td><td data-l="64x6">16 / 24</td></tr>
+          <tr><th scope="row" data-l="">Block RAM</th><td data-l="6x4">1</td><td data-l="64x6">32 / 46</td></tr>
+          <tr><th scope="row" data-l="">Timing</th><td data-l="6x4">29.1 MHz vs 27 MHz needed</td><td data-l="64x6">61.5 MHz vs 27 MHz needed</td></tr>
+          <tr><th scope="row" data-l="">Latency</th><td data-l="6x4">15 clocks · 0.556 µs <Tag b="M" /></td><td data-l="64x6">448 clocks · 16.6 µs <Tag b="M" /></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">The bigger network uses less logic because its weights sit in block RAM and 64 lanes are reused for every layer, while the small one wires everything in parallel.</p>
+  </section>
+
+  <section class="sec" aria-labelledby="steps">
+    <SecHead no="§3" title="Step by step." id="steps" />
+    <div class="prose guide-prose">
+      <ol>
+        <li><b>Get the code:</b> <code>git clone https://github.com/kumarnitish378/NetSilcon-FPGA.git</code>, then open <code>NetSilcon-Models/NetSilcon-6x4</code> or <code>NetSilcon-Models/NetSilcon-64x6</code>.</li>
+        <li><b>Simulate (optional):</b> <code>bash fpga/scripts/run_all_tests.sh</code> (6x4) or <code>bash fpga/scripts/run_sim_engine.sh</code> (64x6). Every test ends with <code>RESULT: PASS</code>.</li>
+        <li><b>Build:</b> in Gowin EDA, device GW2AR-LV18QN88C8/I7, add the files from <code>fpga/rtl</code> and <code>fpga/board</code>, set the include path to <code>fpga/gen</code>, then Synthesize and Place &amp; Route. Or use the open-source script in <code>fpga/scripts/</code>.</li>
+        <li><b>Program:</b> Gowin Programmer, cable "USB Debugger A", SRAM Program. LED0 starts blinking.</li>
+        <li><b>Talk to it:</b> <code>pip install pyserial numpy</code>, then run the host tool in <code>python/host/</code> with <code>--info</code> and <code>--test</code>.</li>
+      </ol>
+      <p>Detailed guides: <a href={u('/docs/getting-started/')}>NetSilcon-6x4 getting started</a> · <a href={repo(M64X6 + 'docs/gowin_build.md')} rel="noopener">NetSilcon-64x6 Gowin build</a>.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="uart">
+    <SecHead no="§4" title="Talking to the network over USB." id="uart" />
+    <div class="prose guide-prose">
+      <p>The PC sees a serial port at 115200 baud. One command byte starts each transaction: <code>A5</code> plus the inputs runs an inference, <code>C3</code> plus the model image and its CRC uploads a model, <code>C5</code> asks which model is running. The host tool compares every answer with the Python model and writes a <code>.log</code> and a <code>.csv</code> for every run.</p>
+      <p><b>A tip that cost us a day:</b> on Windows, pyserial re-applies the port settings every time you change the read timeout, and that briefly resets the Tang Nano 20K's USB bridge. Replies got damaged until the host script set its timeout once and left it alone. After the fix: 4,000 replies, 0 damaged. <Tag b="M" /></p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="results">
+    <SecHead no="§5" title="Results on the board." id="results" />
+    <ul class="facts-list">
+      <li><b>NetSilcon-6x4:</b> three trained jobs on one bitstream (motor fault, irrigation, rover), 576 / 576 bit-exact each, 9,600 hardware-in-the-loop decisions with 0 mismatches. <a href={repo(M6X4 + 'docs/results.md')} rel="noopener">Logs</a></li>
+      <li><b>NetSilcon-64x6:</b> 3,200 vectors bit-exact, 448 clocks on every inference, a trained rover controller that made 19,200 decisions in the loop with 0 mismatches and drove 8 simulated runs without a crash. <a href={u('/netsilcon-64x6/')}>Details</a></li>
+    </ul>
+  </section>
+</Guide>
+
+<style>
+  .facts-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); max-width: 860px; }
+  .facts-list li { padding: 14px 0; border-bottom: 1px solid var(--rule-2); }
+  .facts-list a { color: var(--acc); font-weight: 600; }
+</style>

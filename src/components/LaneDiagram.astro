@@ -1,0 +1,38 @@
+---
+// NetSilcon-64x6 dataflow: one input broadcast to 64 MAC lanes, weights from 32 block RAMs,
+// results through one shared requantizer into the next layer.
+const lanes = Array.from({ length: 8 }, (_, i) => i);
+---
+<svg viewBox="0 0 720 320" role="img" aria-labelledby="ld-t ld-d" class="lanes">
+  <title id="ld-t">NetSilcon-64x6 dataflow</title>
+  <desc id="ld-d">One input value is broadcast each clock to 64 multiply-accumulate lanes. Each lane reads its weight from block RAM. After 16 or 64 clocks the 64 sums go through a shared requantizer (ReLU, round, shift, clamp) and become the inputs of the next layer.</desc>
+  <rect x="10" y="98" width="130" height="60" class="box" />
+  <text x="75" y="124" class="t c">input x[k]</text>
+  <text x="75" y="144" class="s c">1 value per clock</text>
+  {lanes.map((i) => (
+    <g>
+      <line x1="140" y1="128" x2="230" y2={23 + i * 30} class="wire" />
+      <rect x="230" y={10 + i * 30} width="170" height="26" class={i === 7 ? 'box dim' : 'box'} />
+      <text x="315" y={27 + i * 30} class="s c">{i === 7 ? 'lanes 7 … 63' : `lane ${i}: acc += x · w`}</text>
+      <line x1="400" y1={23 + i * 30} x2="480" y2="128" class="wire" />
+    </g>
+  ))}
+  <rect x="480" y="88" width="130" height="80" class="box acc" />
+  <text x="545" y="118" class="t c">requantizer</text>
+  <text x="545" y="138" class="s c">ReLU · round</text>
+  <text x="545" y="154" class="s c">shift · clamp</text>
+  <path d="M610 128 H690 V266 H75 V158" class="wire loop" />
+  <text x="380" y="290" class="s c">64 results become the next layer's inputs · 7 layers · 448 clocks</text>
+  <text x="380" y="310" class="s c">weights come from 32 block RAMs, 2 lanes per RAM, one shared address</text>
+</svg>
+<style>
+  .lanes { width: 100%; height: auto; font-family: var(--mono); }
+  .box { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+  .box.dim { stroke-dasharray: 4 3; }
+  .box.acc { stroke: var(--acc); stroke-width: 1.5; }
+  .wire { stroke: var(--mut); stroke-width: 0.8; fill: none; }
+  .loop { stroke: var(--acc); stroke-dasharray: 5 4; }
+  .t { font-size: 13px; fill: var(--ink); font-weight: 500; }
+  .s { font-size: 11px; fill: var(--mut); }
+  .c { text-anchor: middle; }
+</style>

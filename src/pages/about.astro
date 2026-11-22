@@ -1,11 +1,11 @@
 ---
 import Base from '../layouts/Base.astro';
 import SecHead from '../components/SecHead.astro';
-import { SITE } from '../config';
+import { SITE, useCaseUrl } from '../config';
 const c = SITE.contact;
 const any = c.email || c.linkedin || c.github;
 ---
-<Base title="About and contact" description="NetSilcon is a personal open-source project by Nitish Kumar Sharma, an embedded engineer.">
+<Base title="About and contact" description="NetSilcon is an open-source neural-network-on-FPGA project by Nitish Kumar Sharma, embedded engineer. Contact, LinkedIn and how to suggest a use case.">
   <div class="wrap">
     <header class="pagehd"><div><span class="crumb">About</span><h1>About NetSilcon.</h1><p class="lede">NetSilcon is a personal, open-source project by Nitish Kumar Sharma, an embedded engineer.</p></div></header>
     <section class="sec" aria-labelledby="why">
@@ -30,8 +30,9 @@ const any = c.email || c.linkedin || c.github;
       <ul class="contact">
         {c.email && <li><span class="callout">Email</span><span class="num">{c.email}</span><a class="btn" href={`mailto:${c.email}`}>Write an email</a></li>}
         {c.linkedin && <li><span class="callout">LinkedIn</span><a href={c.linkedin} rel="noopener">{c.linkedin.replace('https://', '')}</a></li>}
+        {useCaseUrl && <li><span class="callout">Suggest a use case</span><span>Have a sensor decision NetSilcon should learn? Tell me the inputs and the decision.</span><a class="btn pri" href={useCaseUrl} rel="noopener">Message me on LinkedIn</a></li>}
         {c.github && <li><span class="callout">GitHub</span><a href={c.github} rel="noopener">{c.github.replace('https://', '')}</a></li>}
-        <li><span class="callout">Issues and ideas</span><a href={`${SITE.githubUrl}/issues`} rel="noopener">Open an issue on the NetSilcon-6x4 repository</a></li>
+        <li><span class="callout">Issues and ideas</span><a href={`${SITE.githubUrl}/issues`} rel="noopener">Open an issue on the NetSilcon-FPGA repository</a></li>
       </ul>
       {!any && <p class="small" style="margin-top:10px">More contact options will be added here.</p>}
     </section>
