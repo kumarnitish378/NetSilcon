@@ -45,7 +45,8 @@ ${news.map((n) => `- [${n.data.title}](${a(`/news/${n.id}/`)}): ${n.data.descrip
 
 ## Optional
 
-- [Datasheet (PDF)](${a('/files/NetSilcon-6x4_Datasheet.pdf')})
+- [NetSilcon-6x4 datasheet (PDF)](${a('/files/NetSilcon-6x4_Datasheet.pdf')})
+- [NetSilcon-64x6 datasheet (PDF)](${a('/files/NetSilcon-64x6_Datasheet.pdf')})
 - [Source code](${SITE.githubUrl}): Apache-2.0
 `;
   return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
