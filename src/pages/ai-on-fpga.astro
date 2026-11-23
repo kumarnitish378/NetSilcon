@@ -1,0 +1,126 @@
+---
+import Guide from '../layouts/Guide.astro';
+import SecHead from '../components/SecHead.astro';
+import Tag from '../components/Tag.astro';
+import BoardPhotos from '../components/BoardPhotos.astro';
+import { repo, M64X6 } from '../config';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const u = (p: string) => `${base}${p}`;
+const faq = [
+  { q: 'Can you run AI on an FPGA?', a: 'Yes. An FPGA can run a neural network as hardware: the multiply-adds become real circuits that work in parallel. NetSilcon runs two open-source neural networks on a Sipeed Tang Nano 20K FPGA: one with 170 parameters that answers in 15 clock cycles, and one with 22,928 parameters that answers in 448 clock cycles (16.6 µs at 27 MHz), both checked bit for bit against a Python model.' },
+  { q: 'Is an FPGA good for AI?', a: 'For small and medium neural networks that must answer quickly and always in the same time, yes. An FPGA computes many neurons in the same clock cycle and has no operating system or driver in the way. For large models such as image, speech or language models, a GPU or NPU is the better tool.' },
+  { q: 'How do I train an AI model for an FPGA?', a: 'Train a normal neural network on your data, then convert it to integer (int8) arithmetic that matches the hardware exactly. With NetSilcon you give a CSV table to train_csv.py: it trains the network, converts it to int8 weights, int16 biases and shifts, reports the accuracy the FPGA will really give on held-out data, and writes a model file you upload to the board in about 2 seconds.' },
+  { q: 'Do I need to rebuild the FPGA for a new AI model?', a: 'Not with NetSilcon. The network shape is fixed in the bitstream, but the numbers (weights, biases, shifts) are a file you upload over USB. A CRC check guards each upload; a damaged file is refused and the running model keeps working.' },
+  { q: 'Which FPGA board is good for learning AI on FPGA?', a: 'A low-cost board is enough to start. NetSilcon uses the Sipeed Tang Nano 20K with a Gowin GW2AR-18 FPGA: the 22,928-parameter engine uses 35 % of its logic, 32 of its 46 block RAMs and 16 of its 24 DSP blocks. The free Gowin EDA Education edition builds the design.' },
+  { q: 'Does AI on an FPGA use less power than a GPU?', a: 'Far less total power. Gowin EDA estimates about 0.26 W for the whole FPGA running NetSilcon-64x6 (a software estimate, not yet measured), while GPUs draw from several watts at the edge to hundreds of watts on a desktop. For a fair comparison of a small network, the real competitor is a microcontroller, and that measurement is still to be done.' },
+  { q: 'Can an FPGA run ChatGPT or a large language model?', a: 'Not a small FPGA like this one. Language models have billions of parameters and need large memory bandwidth. AI on a small FPGA is for compact networks next to a sensor: fault detection, monitoring, control and quick yes-or-no decisions.' },
+];
+---
+<Guide
+  path="/ai-on-fpga/"
+  title="AI on FPGA: run a neural network on a small FPGA, step by step."
+  fullTitle="AI on FPGA: run neural networks on a low-cost FPGA (open source) · NetSilcon"
+  description="AI on FPGA explained and done: train an AI model from a CSV, convert it to bit-exact int8 and run it on a Tang Nano 20K FPGA. Open-source code, measured results, step-by-step guide."
+  lede="AI on FPGA means building a neural network out of the FPGA's own circuits, so many neurons work in the same clock cycle and every answer takes exactly the same time. This page explains what fits, why it is useful, and how to train your own model and run it on a low-cost board, using the open-source NetSilcon engines that run today."
+  updated="2026-11-23"
+  about={['AI on FPGA', 'Neural network on FPGA', 'Edge AI', 'FPGA AI accelerator', 'int8 quantization']}
+  toc={[{ id: 'what', label: 'What it means' }, { id: 'why', label: 'Why an FPGA' }, { id: 'fits', label: 'What fits' }, { id: 'how', label: 'How NetSilcon does it' }, { id: 'train', label: 'Train your own' }, { id: 'numbers', label: 'Measured numbers' }, { id: 'start', label: 'Get started' }]}
+  faq={faq}
+  related={[{ href: '/docs/complete-guide/', label: 'Complete guide: clone, train, test, run' }, { href: '/neural-network-on-fpga/', label: 'Neural network on FPGA: how it works' }, { href: '/fpga-ai-accelerator/', label: 'FPGA AI accelerator: architectures and trade-offs' }, { href: '/tinyml-fpga/', label: 'TinyML on FPGA vs microcontroller' }]}
+>
+  <section class="sec" aria-labelledby="what">
+    <SecHead no="§1" title="What AI on FPGA means." id="what" />
+    <div class="prose guide-prose">
+      <p>Most AI today runs as software: a processor or GPU follows instructions to compute a neural network. <b>AI on FPGA</b> is different. An FPGA is a chip whose circuits you can rewire, so the neural network itself becomes hardware: real multipliers and adders, connected in the shape of the network.</p>
+      <p>A neural network is mostly one operation repeated: multiply each input by a weight, add everything up, add a bias, and decide. Think of a kitchen. A processor is one cook doing every step of every dish alone. An FPGA lets you build the kitchen with 64 cooks who all chop at the same moment. Nobody waits for instructions, and dinner is ready after the same number of ticks every time.</p>
+    </div>
+  </section>
+
+  <BoardPhotos which={['board_angle_leds', 'board_top_leds', 'board_bottom_pins']} caption="AI on FPGA, for real: the Tang Nano 20K that runs both NetSilcon engines" />
+
+  <section class="sec" aria-labelledby="why">
+    <SecHead no="§2" title="Why run AI on an FPGA?" id="why" />
+    <div class="cols cols-3">
+      <div><span class="step-no">fixed timing</span><h3>Same answer time, every time</h3><p class="mut">NetSilcon-64x6 answers in exactly 448 clock cycles <Tag b="M" />. No interrupts, caches or operating system can stretch it. That matters for control loops and safety checks.</p></div>
+      <div><span class="step-no">parallel</span><h3>Many neurons per clock</h3><p class="mut">64 multiply-accumulate lanes work at once. Per clock cycle that is 31× less work than a laptop CPU running the same network in optimised C <Tag b="M" />.</p></div>
+      <div><span class="step-no">small and cheap</span><h3>Right next to the sensor</h3><p class="mut">A low-cost FPGA board is enough. Gowin estimates about 0.26 W for the whole FPGA <Tag b="E" />, against several to hundreds of watts for a GPU.</p></div>
+    </div>
+    <div class="prose guide-prose" style="margin-top:20px">
+      <p><b>Honest limits.</b> At 27 MHz, a 4 GHz laptop CPU still finishes this network first (3.45 µs against 16.6 µs) <Tag b="M" />. The FPGA design would match it at about 130 MHz. The cycle count is what carries over to a custom chip, and a small chip at a few hundred MHz would be faster than the laptop. Power in silicon is a design target <Tag b="T" />, not a measurement.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="fits">
+    <SecHead no="§3" title="What kind of AI fits on a small FPGA?" id="fits">Compact networks that turn a handful of sensor readings into a decision, fast and repeatably.</SecHead>
+    <div class="tbl-wrap guide-tbl">
+      <table class="stack">
+        <thead><tr><th>Good fit</th><th>Inputs → outputs</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><th scope="row" data-l="">Fault detection</th><td data-l="Inputs → outputs">current, voltage, speed, temperature → healthy / fault</td><td data-l="Example">motor and pump monitoring</td></tr>
+          <tr><th scope="row" data-l="">Machine health</th><td data-l="Inputs → outputs">16 vibration features → normal / imbalance / misalignment / bearing</td><td data-l="Example">the pump example in the guide</td></tr>
+          <tr><th scope="row" data-l="">Control</th><td data-l="Inputs → outputs">16 LiDAR distances → speed, steering</td><td data-l="Example">the NetSilcon rover controller</td></tr>
+          <tr><th scope="row" data-l="">Estimation</th><td data-l="Inputs → outputs">up to 16 readings → up to 16 values</td><td data-l="Example">battery state, energy or flow estimates</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose guide-prose" style="margin-top:16px">
+      <p><b>Not a fit for this board:</b> image recognition, speech and language models. They need millions to billions of parameters and much more memory. Use a GPU or NPU for those.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="how">
+    <SecHead no="§4" title="How NetSilcon runs AI on an FPGA." id="how" />
+    <div class="prose guide-prose">
+      <p>NetSilcon follows the idea of an op-amp: the same part becomes an amplifier, a filter or a comparator depending on a few resistor values around it. Here the <b>shape</b> of the network is fixed in hardware, and the <b>numbers</b> (weights, biases and scaling shifts) are a file you upload. <b>Fix the shape. Load the numbers. New job.</b></p>
+      <ul>
+        <li><b>NetSilcon-6x4:</b> 4 inputs → 4 layers of 6 → 2 outputs, 170 parameters, 15 clock cycles per answer <Tag b="M" />. One bitstream has run a motor fault detector, an irrigation controller and a rover driver.</li>
+        <li><b>NetSilcon-64x6:</b> 16 inputs → 6 layers of 64 → 16 outputs, 22,928 parameters in block RAM, 448 clock cycles <Tag b="M" />. A new model uploads in about 2 seconds <Tag b="M" />, checked with a CRC-32.</li>
+      </ul>
+      <p>All maths is integer (int8 weights, int16 biases, power-of-two shifts), and a Python model does exactly the same maths. So the FPGA's answers are not just close to Python, they are <b>identical</b>, and every test proves it.</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="train">
+    <SecHead no="§5" title="Train your own AI model for the FPGA." id="train">From a CSV table to a model running on the board, in four commands. No GPU needed.</SecHead>
+    <div class="prose guide-prose">
+      <ol>
+        <li><b>Make a table.</b> One row per moment, up to 16 sensor columns, plus the answer: a class name or numbers.</li>
+        <li><b>Train and convert.</b> <code>train_csv.py</code> trains the network, converts it to int8 and reports the accuracy the FPGA will really give on rows it never saw.</li>
+        <li><b>Simulate.</b> <code>run_sim_model.sh</code> runs your model through the real Verilog and compares 1,200 answers with Python.</li>
+        <li><b>Upload and run.</b> <code>ns64_host.py --load</code> sends it to the board; <code>app_example.py</code> turns real readings into decisions.</li>
+      </ol>
+    </div>
+    <pre><code>cd NetSilcon-Models/NetSilcon-64x6
+python3 python/model/example_pump_data.py
+python3 python/model/train_csv.py data/pump_vibration.csv --name pump_health --target state
+bash fpga/scripts/run_sim_model.sh models/pump_health/pump_health.json
+python python/host/ns64_host.py COM7 --load models/pump_health/pump_health.json</code></pre>
+    <div class="prose guide-prose">
+      <p>On the example table (synthetic data, 16 vibration features, 4 pump states) the int8 model scores <b>95.2 %</b> on 2,000 held-out rows, against 95.5 % for the float network, and the Verilog simulation matches Python on all 1,200 test vectors. It has not been run on the board yet. <a href={repo(M64X6 + 'python/model/train_csv.py')} rel="noopener">train_csv.py on GitHub</a></p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="numbers">
+    <SecHead no="§6" title="Measured on real hardware." id="numbers">Sipeed Tang Nano 20K, Gowin GW2AR-18, 27 MHz. M = measured, E = estimated, T = target.</SecHead>
+    <div class="tbl-wrap guide-tbl">
+      <table class="stack">
+        <thead><tr><th></th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><th scope="row" data-l="">Bit-exact answers on the FPGA</th><td data-l="Result">3,200 vectors (64x6), 576 per job (6x4), 0 mismatches <Tag b="M" /></td></tr>
+          <tr><th scope="row" data-l="">AI driving a simulated robot</th><td data-l="Result">19,200 decisions by the real FPGA, 0 mismatches, 0 crashes in 8 drives <Tag b="M" /></td></tr>
+          <tr><th scope="row" data-l="">Clock cycles per answer</th><td data-l="Result">448, against ≈ 14,100 on a laptop CPU <Tag b="M" /></td></tr>
+          <tr><th scope="row" data-l="">FPGA power</th><td data-l="Result">≈ 0.26 W for the whole FPGA, Gowin estimate <Tag b="E" /></td></tr>
+          <tr><th scope="row" data-l="">Deliberate bugs caught by the tests</th><td data-l="Result">11 of 11 (NetSilcon-64x6 mutation tests, in simulation) <Tag b="M" /></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="start">
+    <SecHead no="§7" title="Get started." id="start" />
+    <div class="prose guide-prose">
+      <p>You can simulate, train and test everything on a PC without a board. The <a href={u('/docs/complete-guide/')}>complete guide</a> goes from <code>git clone</code> to a running application, with the expected output of every step. All code, models and hardware logs are open source on <a href={repo('')} rel="noopener">GitHub</a>.</p>
+      <p>Have a job for AI on FPGA, with up to 16 sensor readings in? <a href={u('/applications/')}>Suggest a use case</a>: good ideas become the next trained model.</p>
+    </div>
+  </section>
+</Guide>

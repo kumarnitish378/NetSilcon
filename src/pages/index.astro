@@ -12,18 +12,19 @@ import { SITE, useCaseUrl } from '../config';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 ---
-<Base description="NetSilcon is an open-source neural network on FPGA: an int8 network in Verilog with loadable weights. 0.556 µs per inference, bit-exact, on a Tang Nano 20K." jsonld={[{ '@type': 'SoftwareSourceCode', name: 'NetSilcon-6x4', description: 'Open-source int8 neural network on FPGA in Verilog, with loadable weights, for the Sipeed Tang Nano 20K (Gowin GW2AR-18).', codeRepository: SITE.githubUrl, programmingLanguage: ['Verilog', 'Python'], license: 'https://www.apache.org/licenses/LICENSE-2.0', author: { '@type': 'Person', name: SITE.author } }]}>
+<Base description="NetSilcon is open-source AI on FPGA: int8 neural networks in Verilog with loadable weights. Train a model from your data, run it bit-exact on a Tang Nano 20K." jsonld={[{ '@type': 'SoftwareSourceCode', name: 'NetSilcon-6x4', description: 'Open-source int8 neural network on FPGA in Verilog, with loadable weights, for the Sipeed Tang Nano 20K (Gowin GW2AR-18).', codeRepository: SITE.githubUrl, programmingLanguage: ['Verilog', 'Python'], license: 'https://www.apache.org/licenses/LICENSE-2.0', author: { '@type': 'Person', name: SITE.author } }]}>
   <div class="wrap">
     <div class="docline"><span>NS6X4-Q24 · open-source neural-network hardware · Apache-2.0</span><span>FPGA reference: working <Tag b="M" /> · silicon: target <Tag b="T" /></span></div>
 
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-text">
         <h1 id="hero-title">Fix the shape.<br />Load the numbers.<br /><em>New job.</em></h1>
-        <p class="lede">NetSilcon is a neural network on an FPGA: one small network built into the hardware, with weights, biases and shifts you can load at run time. It works like an op-amp, where a few resistor values decide whether it is an amplifier, a filter or a comparator. Here a 201-byte model decides what the same chip does.</p>
+        <p class="lede">NetSilcon is AI on an FPGA: one small neural network built into the hardware, with weights, biases and shifts you can load at run time. It works like an op-amp, where a few resistor values decide whether it is an amplifier, a filter or a comparator. Here a 201-byte model decides what the same chip does.</p>
         <div class="btns">
           <a class="btn pri" href={u('/files/NetSilcon-6x4_Datasheet.pdf')}>Read the datasheet <span aria-hidden="true">→</span></a>
           <a class="btn" href={SITE.githubUrl} rel="noopener">GitHub</a>
           <a class="btn" href={u('/playground/')}>Try it in the browser</a>
+          <a class="btn" href={u('/ai-on-fpga/')}>Train your own AI model</a>
         </div>
       </div>
       <figure class="fig hero-fig">

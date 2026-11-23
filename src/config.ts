@@ -4,7 +4,7 @@ export const SITE = {
   name: 'NetSilcon',
   tagline: 'Fix the shape. Load the numbers. New job.',
   description:
-    'NetSilcon is an open-source neural network on FPGA: a fixed int8 network in Verilog with loadable weights. 15 clock cycles per inference, bit-exact, on a Tang Nano 20K.',
+    'NetSilcon is open-source AI on FPGA: neural networks built in Verilog with loadable weights, trained from your own data and run bit-exact on a low-cost Tang Nano 20K.',
   author: 'Nitish Kumar Sharma',
 
   /** Google Search Console ownership token (HTML tag method). Keep it, or the site loses verification. */

@@ -7,7 +7,7 @@ interface Props { title?: string; fullTitle?: string; description?: string; noGr
 const { title, fullTitle: fullTitleProp, description = SITE.description, noGrid = false, ogType = 'website', jsonld = [], crumbs } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
-const fullTitle = fullTitleProp ?? (title ? `${title} · NetSilcon` : 'Neural network on FPGA · NetSilcon open-source NN hardware');
+const fullTitle = fullTitleProp ?? (title ? `${title} · NetSilcon` : 'AI on FPGA: open-source neural network hardware · NetSilcon');
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(u('/og.png'), Astro.site);
 const path = Astro.url.pathname.replace(base, '') || '/';
@@ -22,6 +22,7 @@ const primary = [
   { href: '/playground/', label: 'Playground' },
 ];
 const secondary = [
+  { href: '/ai-on-fpga/', label: 'AI on FPGA: train and run your own' },
   { href: '/neural-network-on-fpga/', label: 'Neural network on FPGA: guide' },
   { href: '/fpga-ai-accelerator/', label: 'FPGA AI accelerator' },
   { href: '/verilog-neural-network/', label: 'Neural network in Verilog' },
@@ -127,6 +128,7 @@ const current = (href: string) => (href === '/' ? path === '/' : path.startsWith
           <li><a href={u('/roadmap/')}>Roadmap</a></li>
         </ul></div>
         <div><h2>Build</h2><ul>
+          <li><a href={u('/ai-on-fpga/')}>AI on FPGA</a></li>
           <li><a href={u('/neural-network-on-fpga/')}>Neural network on FPGA</a></li>
           <li><a href={u('/fpga-ai-accelerator/')}>FPGA AI accelerator</a></li>
           <li><a href={u('/verilog-neural-network/')}>Neural network in Verilog</a></li>

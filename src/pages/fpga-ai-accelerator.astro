@@ -6,7 +6,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 const faq = [
   { q: 'What is an FPGA AI accelerator?', a: 'An FPGA AI accelerator is neural-network hardware built from an FPGA\'s logic, multipliers and memory. Instead of running instructions, the network\'s multiply-adds are wired into the chip, so many neurons compute in the same clock cycle. NetSilcon is an open-source example with two engines on a Sipeed Tang Nano 20K.' },
-  { q: 'Is an FPGA AI accelerator faster than a CPU?', a: 'Per clock cycle, by a wide margin: NetSilcon-64x6 needs 448 cycles per inference where a laptop CPU needs about 14,100 for the same bit-exact network. In wall-clock time a 4 GHz CPU can still win against a 27 MHz FPGA. The FPGA wins on cycles, on fixed latency and on energy, and it beats the microcontroller that would normally sit in an embedded device.' },
+  { q: 'Is an FPGA AI accelerator faster than a CPU?', a: 'Per clock cycle, by a wide margin: NetSilcon-64x6 needs 448 cycles per inference where a laptop CPU needs about 14,100 for the same bit-exact network. In wall-clock time a 4 GHz CPU can still win against a 27 MHz FPGA. The FPGA wins on cycles and on fixed latency. Energy and the comparison with a microcontroller are not measured yet.' },
   { q: 'Can I change the AI model without rebuilding the FPGA?', a: 'Yes, if the weights live in writable registers or block RAM. Both NetSilcon engines load a new model over UART: 201 bytes in 31 ms for NetSilcon-6x4, 23,335 bytes in 2 s for NetSilcon-64x6. A CRC check guards every upload, and the running model is only replaced after the check passes.' },
   { q: 'Which FPGA is good for a small AI accelerator?', a: 'For sensor-level networks a low-cost FPGA is enough. NetSilcon uses the Gowin GW2AR-18 on the Sipeed Tang Nano 20K: NetSilcon-64x6 needs 35 % of its logic, 32 of 46 block RAMs and 16 of 24 DSP blocks. The number of hardware multipliers and block RAMs usually decides how big a network fits.' },
   { q: 'FPGA vs NPU for edge AI: which is better?', a: 'An NPU is best for large models like vision networks, where it runs at full speed. For tiny networks with batch size 1, the overhead of moving data to an NPU can cost more than the inference itself. An FPGA accelerator answers in a fixed number of clock cycles with no driver or operating system in the way.' },
@@ -22,7 +22,7 @@ const faq = [
   about={['FPGA AI accelerator', 'Edge AI', 'Neural network on FPGA', 'int8 inference']}
   toc={[{ id: 'what', label: 'What it is' }, { id: 'arch', label: 'Two architectures' }, { id: 'numbers', label: 'Measured numbers' }, { id: 'when', label: 'When an FPGA wins' }, { id: 'load', label: 'Loadable models' }]}
   faq={faq}
-  related={[{ href: '/neural-network-on-fpga/', label: 'Neural network on FPGA: the full guide' }, { href: '/verilog-neural-network/', label: 'Neural network in Verilog: MAC, ReLU, requantization' }, { href: '/netsilcon-64x6/', label: 'NetSilcon-64x6: 22,528 weights, 448 clocks' }, { href: '/benchmarks/', label: 'Benchmarks: FPGA vs MCU, CPU, GPU, NPU' }]}
+  related={[{ href: '/ai-on-fpga/', label: 'AI on FPGA: train and run your own model' }, { href: '/neural-network-on-fpga/', label: 'Neural network on FPGA: the full guide' }, { href: '/verilog-neural-network/', label: 'Neural network in Verilog: MAC, ReLU, requantization' }, { href: '/netsilcon-64x6/', label: 'NetSilcon-64x6: 22,528 weights, 448 clocks' }, { href: '/benchmarks/', label: 'Benchmarks: FPGA vs MCU, CPU, GPU, NPU' }]}
 >
   <section class="sec" aria-labelledby="what">
     <SecHead no="§1" title="What an FPGA AI accelerator is." id="what" />
@@ -71,7 +71,7 @@ const faq = [
       <p><b>Choose an FPGA</b> when the network is small to medium, inputs arrive one at a time (batch size 1), the answer must come in a fixed time, and power or cost rules out a big processor. Motor-fault detection beside an ESC, battery-cell anomaly checks and obstacle decisions on a robot all fit this pattern.</p>
       <p><b>Choose a CPU</b> when you already have a fast one and only need an answer now and then. At 4 GHz a laptop core finishes NetSilcon-64x6's network in 3.45 µs; the FPGA engine would need about 130 MHz to match it in wall-clock time, even though it needs 31× fewer cycles.</p>
       <p><b>Choose an NPU or GPU</b> for vision, audio and language models, where their throughput dominates and batch sizes are large.</p>
-      <p>The cycle count is what carries over to a custom chip. A design that needs 448 cycles, clocked at a few hundred MHz in silicon, would beat the laptop at a tiny fraction of the power. That is the long-term path NetSilcon is built for.</p>
+      <p>The cycle count is what carries over to a custom chip. A design that needs 448 cycles, clocked at a few hundred MHz in silicon, would beat the laptop; low power in silicon is the design target, not yet a measurement. That is the long-term path NetSilcon is built for.</p>
     </div>
   </section>
 
