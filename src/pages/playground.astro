@@ -5,7 +5,7 @@ import Tag from '../components/Tag.astro';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const u = (p: string) => `${base}${p}`;
 ---
-<Base fullTitle="FPGA neural network playground in your browser · NetSilcon" description="Try the NetSilcon FPGA neural network in your browser: a bit-exact copy of the int8 network with real model files, live neurons and a rover simulator." crumbs={[{ name: 'Playground', path: '/playground/' }]}>
+<Base fullTitle="FPGA neural network playground in your browser · NetSilcon" description="Try the NetSilcon FPGA neural network in your browser: a bit-exact copy of the int8 network with real model files, live neurons, a rover simulator and a maze simulator." crumbs={[{ name: 'Playground', path: '/playground/' }]}>
   <div class="wrap">
     <header class="pagehd">
       <div>
@@ -75,6 +75,15 @@ const u = (p: string) => `${base}${p}`;
         <p class="small simnote">Loads a 64 KB page. Works best on a tablet or larger screen.</p>
       </div>
       <p class="small" style="margin-top:10px"><a href={u('/sim/rover_simulator.html')} target="_blank" rel="noopener">Open the simulator in its own tab ↗</a> · <a href={u('/docs/rover-simulator/')}>How it works and test results</a></p>
+    </section>
+
+    <section class="sec" aria-labelledby="maze" id="maze-sec">
+      <SecHead no="§3 Maze simulator" title="Watch it find the way out of a maze." id="maze">New: NetSilcon-64x6 with two model files. The maze model learned the right-hand rule from 16 LiDAR distances; the rover model only avoids obstacles. Same chip shape, same inputs: switch the model file and watch the difference. Generate as many new mazes as you like.</SecHead>
+      <div class="simwrap" id="mazewrap">
+        <button class="btn pri simload" type="button" id="mazeload">Load the maze simulator</button>
+        <p class="small simnote">Loads about 190 KB (the page and both model files).</p>
+      </div>
+      <p class="small" style="margin-top:10px"><a href={u('/sim/maze_simulator.html')} target="_blank" rel="noopener">Open the maze simulator in its own tab ↗</a> · <a href={u('/news/netsilcon-64x6-maze/')}>How the maze model was trained</a></p>
     </section>
   </div>
 </Base>
@@ -218,6 +227,14 @@ const u = (p: string) => `${base}${p}`;
   simwrap.dataset.src = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/sim/rover_simulator.html`;
   $('simload').addEventListener('click', loadSim);
   if (location.hash === '#rover') loadSim();
+  const mazewrap = $('mazewrap');
+  function loadMaze() {
+    if (mazewrap.querySelector('iframe')) return;
+    mazewrap.innerHTML = `<iframe src="${import.meta.env.BASE_URL.replace(/\/$/, '')}/sim/maze_simulator.html" title="NetSilcon maze simulator" loading="lazy"></iframe>`;
+    mazewrap.classList.add('loaded');
+  }
+  $('mazeload').addEventListener('click', loadMaze);
+  if (location.hash === '#maze') loadMaze();
 </script>
 
 <style>

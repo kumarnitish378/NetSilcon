@@ -1,0 +1,47 @@
+---
+title: "Same chip, new file: NetSilcon-64x6 learns to get out of mazes"
+description: "A second trained model for NetSilcon-64x6 learned the right-hand rule from 16 LiDAR distances and reached the exit in 72 of 80 unseen simulated mazes, with no crashes. Try it live in the browser."
+date: 2026-11-27
+order: 6
+---
+
+The first trained NetSilcon-64x6 model drives a rover around obstacles. It does that well, but it has no idea where it is going. Put it in a maze and it wanders: in 80 test mazes it found the exit 38 times, mostly by luck.
+
+So the same network shape got a second job. **Same chip, same 16 LiDAR inputs, same two outputs. Only the model file changed.**
+
+| Test mazes, never seen in training | Maze model | Rover model |
+|---|---|---|
+| 4 × 4 cells, 1.6 m corridors | 20 / 20 | 12 / 20 |
+| 6 × 6 cells, 1.6 m corridors | 19 / 20 | 12 / 20 |
+| 8 × 8 cells, 1.6 m corridors | 18 / 20 | 6 / 20 |
+| 6 × 6 cells, 1.2 m corridors | 15 / 20 | 8 / 20 |
+| **All 80 mazes** | **72 / 80, 0 crashes** | 38 / 80, 1 crash |
+
+[Watch it drive through a new maze in your browser →](/playground/#maze)
+
+## The trick: keep one hand on the wall
+
+In a maze with exactly one path between any two places, there is an old rule that always works: keep your right hand on the wall and keep walking. You will visit every corner of the maze eventually, including the exit. No map, no memory.
+
+For a car-like rover that becomes: head for the right-most open direction. A corridor on the right? Take it. If not, go straight; if not, turn left. At a dead end, stop, and a small fixed 3-point-turn helper turns the rover around.
+
+## Three attempts, one lesson
+
+The first teacher was clever: it knew the maze map and the rover's exact position, and chose each turn from that. The network copied it badly, solving only 4 of 20 small mazes. Removing the extra memory inputs made little difference (6 of 20).
+
+The reason: the network cannot see the map or its position. Two moments that look exactly the same in the LiDAR could carry different teacher decisions, so the network learned a blurred average of them.
+
+What worked was a teacher that decides from **the same 16 distances the network sees**. Then the network can learn it exactly, and it did: 72 of 80 mazes, the same as its teacher, and slightly better in the narrow corridors (15 against 12).
+
+*A teacher is only useful if the student can see what the teacher sees.*
+
+## Honest limits
+
+- **Simulation only.** The model's integer maths was checked in the Verilog simulation (1,200 of 1,200 golden vectors match), but it has not driven with the real board yet.
+- **It explores, it doesn't plan.** It does not find the shortest route, and big mazes take a few minutes.
+- **Dead ends need the helper.** The 3-point turn is fixed logic beside the network, as in the rover tests.
+- **8 of 80 mazes timed out**, 5 of them in the narrow 1.2 m corridors, where the rover barely fits through a turn.
+
+## Try it
+
+The [maze simulator](/playground/#maze) runs the real model file in your browser with the chip's integer maths. Generate a new maze, switch between the maze model and the rover model, and watch the difference. Its physics follows the Python simulator step for step: on test drives the two traced the same path to within a hundredth of a millimetre.

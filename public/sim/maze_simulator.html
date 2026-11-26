@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NetSilcon Maze Simulator</title>
+<style>
+@font-face{font-family:'Space Grotesk';src:url(fonts/space-grotesk-latin-500-normal.woff2) format('woff2');font-weight:500 600}
+@font-face{font-family:'Space Grotesk';src:url(fonts/space-grotesk-latin-700-normal.woff2) format('woff2');font-weight:700}
+@font-face{font-family:'IBM Plex Sans';src:url(fonts/ibm-plex-sans-latin-400-normal.woff2) format('woff2');font-weight:400 500}
+@font-face{font-family:'IBM Plex Sans';src:url(fonts/ibm-plex-sans-latin-600-normal.woff2) format('woff2');font-weight:600}
+@font-face{font-family:'IBM Plex Mono';src:url(fonts/ibm-plex-mono-latin-400-normal.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'IBM Plex Mono';src:url(fonts/ibm-plex-mono-latin-500-normal.woff2) format('woff2');font-weight:500 600}
+:root{--bg:#eef1f5;--panel:#fff;--ink:#18212d;--muted:#5b6878;--line:#d4dbe4;--accent:#2f56d9;--beam:#0f8f86;--floor:#f8fafc;--wall:#2b3645;--trail:rgba(47,86,217,.35);--exit:rgba(31,138,76,.18);--ok:#1f8a4c;--warn:#c27a00;--bad:#c8322f;
+--fd:"Space Grotesk","Segoe UI",system-ui,sans-serif;--fb:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;--fm:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11161d;--panel:#18202a;--ink:#e4e9f0;--muted:#94a1b2;--line:#2b3644;--accent:#7d9bff;--beam:#35c9bd;--floor:#0d1218;--wall:#c9d3df;--trail:rgba(125,155,255,.35);--exit:rgba(76,201,131,.2);--ok:#4cc983;--warn:#f0b13a;--bad:#ff6b66;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11161d;--panel:#18202a;--ink:#e4e9f0;--muted:#94a1b2;--line:#2b3644;--accent:#7d9bff;--beam:#35c9bd;--floor:#0d1218;--wall:#c9d3df;--trail:rgba(125,155,255,.35);--exit:rgba(76,201,131,.2);--ok:#4cc983;--warn:#f0b13a;--bad:#ff6b66;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--fb);padding:18px max(16px,env(safe-area-inset-left,0px)) 32px}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:14px}.wrap>*{min-width:0}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+h1{font-family:var(--fd);font-size:1.55rem;margin:0;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);max-width:76ch}
+.chipid{font-family:var(--fm);font-size:.78rem;color:var(--accent);border:1px solid var(--line);border-radius:4px;padding:2px 7px;background:var(--panel)}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.ctl{display:grid;gap:3px}.ctl>span{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+button{cursor:pointer}button:hover,select:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--panel);border-color:var(--accent);font-weight:600;min-width:84px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--panel)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.arena{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;position:relative}
+canvas#arena{width:100%;max-width:min(100%,78vh);margin:0 auto;height:auto;display:block;border-radius:4px}
+.hint{font-size:.78rem;color:var(--muted);margin:6px 4px 0}
+.banner{position:absolute;left:50%;top:18px;transform:translateX(-50%);color:#fff;font-weight:600;padding:7px 14px;border-radius:6px;font-size:.95rem;text-align:center;max-width:calc(100% - 32px)}
+.banner.ok{background:var(--ok)}.banner.bad{background:var(--bad)}.banner.warn{background:var(--warn);color:#1b1300}
+.side{display:grid;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.card h2{font-family:var(--fd);font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px;font-weight:600}
+.sect{display:grid;grid-template-columns:repeat(16,1fr);gap:2px;align-items:end;height:70px}
+.sect i{display:block;background:var(--beam);border-radius:2px 2px 0 0;min-height:2px}
+.sectlbl{display:flex;justify-content:space-between;font:.68rem var(--fm);color:var(--muted);margin-top:3px}
+.out{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gauge .lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.gauge .val{font-family:var(--fm);font-size:1.25rem;font-weight:600}
+.gauge .raw{font-family:var(--fm);font-size:.72rem;color:var(--muted)}
+.cbar{position:relative;height:10px;background:var(--bg);border-radius:5px;margin-top:4px}
+.cbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--muted)}
+.cbar i{position:absolute;top:0;bottom:0;background:var(--accent);border-radius:5px}
+.modes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.pill{font-family:var(--fm);font-size:.72rem;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pill.on.net{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.pill.on.sup{background:var(--warn);border-color:var(--warn);color:#1b1300}
+.pill.on.saf{background:var(--bad);border-color:var(--bad);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat .n{font-family:var(--fm);font-size:1.05rem;font-weight:600}
+.stat .t{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.selftest{font-family:var(--fm);font-size:.75rem;color:var(--ok);margin:8px 0 0}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;color:var(--muted)}
+.note b{color:var(--ink)}.note p{margin:4px 0;max-width:90ch}
+</style></head><body><div class="wrap">
+<header><h1>NetSilcon Maze Simulator</h1><span class="chipid" id="chipid"></span>
+<p>A virtual rover driven by the exact int8 NetSilcon-64x6 network that runs on the Tang Nano 20K FPGA. Every 50 ms a 360° LiDAR becomes 16 inputs, the chip maths returns speed and steering, and fixed logic adds a safety stop and a 3-point-turn helper. Find the exit in the top-right corner.</p></header>
+<div class="controls">
+  <div class="ctl"><span>Run</span><div style="display:flex;gap:6px"><button class="primary" id="play">Pause</button><button id="restart">Restart</button></div></div>
+  <div class="ctl"><span>Maze</span><div style="display:flex;gap:6px"><button id="newmaze">New maze</button><select id="size"><option value="4">4 × 4</option><option value="6" selected>6 × 6</option><option value="8">8 × 8</option></select><select id="cell"><option value="1.2">1.2 m corridors</option><option value="1.4">1.4 m corridors</option><option value="1.6" selected>1.6 m corridors</option></select></div></div>
+  <div class="ctl"><span>Network (model file)</span><select id="model"><option value="maze">Maze model (right-hand rule)</option><option value="rover">Rover model (obstacle avoidance only)</option></select></div>
+  <div class="ctl"><span>Speed</span><div class="seg" id="speedseg"><button data-k="1">1×</button><button data-k="4" aria-pressed="true">4×</button><button data-k="16">16×</button></div></div>
+</div>
+<div class="main">
+  <div class="arena"><canvas id="arena" width="900" height="900"></canvas><div class="banner" id="banner" hidden></div>
+    <p class="hint">Teal lines: the 16 LiDAR sectors the network sees. Faint line: the path driven. Green: the exit.</p></div>
+  <div class="side">
+    <div class="card"><h2>LiDAR → chip inputs</h2><div class="sect" id="sect"></div><div class="sectlbl"><span>rear</span><span>right</span><span>front</span><span>left</span><span>rear</span></div></div>
+    <div class="card"><h2>Chip outputs</h2><div class="out">
+      <div class="gauge"><div class="lbl">Speed</div><div class="val" id="spv">0 %</div><div class="cbar"><i id="spb"></i></div><div class="raw" id="spr">y0 = 0</div></div>
+      <div class="gauge"><div class="lbl">Steering</div><div class="val" id="stv">0 %</div><div class="cbar"><i id="stb"></i></div><div class="raw" id="str">y1 = 0</div></div></div>
+      <div class="modes"><span class="pill net" id="m-net">network driving</span><span class="pill sup" id="m-sup">3-point turn</span><span class="pill saf" id="m-saf">safety stop</span></div></div>
+    <div class="card"><h2>This drive</h2><div class="stats">
+      <div class="stat"><div class="n" id="s-time">0.0 s</div><div class="t">time</div></div>
+      <div class="stat"><div class="n" id="s-dist">0.0 m</div><div class="t">driven</div></div>
+      <div class="stat"><div class="n" id="s-cells">0 %</div><div class="t">cells seen</div></div></div>
+      <p class="selftest" id="selftest">checking the network…</p></div>
+  </div>
+</div>
+<div class="note"><p><b>Two model files, one chip.</b> Both networks have the same shape (16 → 64 × 6 → 16) and the same 16 LiDAR inputs. The rover model only learned to avoid obstacles. The maze model learned the right-hand rule: turn right if you can, else go straight, else turn left, and stop at a dead end so the 3-point-turn helper can turn the rover around.</p>
+<p><b>Test results</b> (Python simulation, 80 mazes the models never saw): maze model reached the exit in 72 of 80 mazes with 0 crashes; rover model in 38 of 80 with 1 crash. This page is a JavaScript copy of that simulation: the network maths is bit-exact, the physics follows the same equations.</p></div>
+</div>
+<script>
+{
+const LENGTH=0.5,WIDTH=0.4,WB=0.35,MAX_STEER=30*Math.PI/180,MAX_SPEED=0.8,ACCEL=1.0,STEER_RATE=120*Math.PI/180,DT=0.05,RANGE=4.0;
+const DEGS=[];for(let a=-180;a<180;a+=2)DEGS.push(a);
+const PHIS=DEGS.map(d=>d*Math.PI/180);
+const EXT=PHIS.map(p=>{const c=Math.abs(Math.cos(p)),s=Math.abs(Math.sin(p));return Math.min(c>1e-9?(LENGTH/2)/c:1e9,s>1e-9?(WIDTH/2)/s:1e9)});
+const SECT16=[...Array(16)].map((_,k)=>DEGS.map((d,i)=>(d>=-180+22.5*k&&d<-180+22.5*(k+1))?i:-1).filter(i=>i>=0));
+const CORNER={FL:DEGS.map((d,i)=>d>=0&&d<=30?i:-1).filter(i=>i>=0),FR:DEGS.map((d,i)=>d>=-30&&d<=0?i:-1).filter(i=>i>=0),
+ RL:DEGS.map((d,i)=>d>=150||d===-180?i:-1).filter(i=>i>=0),RR:DEGS.map((d,i)=>d>=-180&&d<=-150?i:-1).filter(i=>i>=0)};
+const FRONT=DEGS.map(d=>d>-90&&d<90);
+// ---- network: bit-exact int8 maths of the FPGA
+class Net{constructor(m){this.W=m.weights;this.B=m.biases;this.S=m.shifts;this.m=m}
+ forward(x){let a=x.slice();for(let l=0;l<7;l++){const W=this.W[l],B=this.B[l],s=this.S[l],last=l===6,out=new Array(W.length);
+  for(let j=0;j<W.length;j++){let acc=B[j];const w=W[j];for(let i=0;i<a.length;i++)acc+=a[i]*w[i];
+   if(!last&&acc<0)acc=0;if(s)acc+=1<<(s-1);let y=Math.floor(acc/(1<<s));y=Math.min(127,Math.max(last?-128:0,y));out[j]=y}a=out}return a}}
+// ---- maze: recursive backtracker with a seeded random generator
+function rng32(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeMaze(n,cell,seed){const R=rng32(seed),E={},D={N:[0,1],S:[0,-1],E:[1,0],W:[-1,0]},O={N:'S',S:'N',E:'W',W:'E'};
+ for(let x=0;x<n;x++)for(let y=0;y<n;y++)E[x+','+y]=new Set(['N','S','E','W']);
+ const st=[[0,0]],seen=new Set(['0,0']);
+ while(st.length){const c=st[st.length-1];const nb=Object.keys(D).map(d=>[d,[c[0]+D[d][0],c[1]+D[d][1]]]).filter(([d,p])=>E[p[0]+','+p[1]]&&!seen.has(p[0]+','+p[1]));
+  if(!nb.length){st.pop();continue}const [d,p]=nb[Math.floor(R()*nb.length)];E[c[0]+','+c[1]].delete(d);E[p[0]+','+p[1]].delete(O[d]);seen.add(p[0]+','+p[1]);st.push(p)}
+ const segs=[];for(let x=0;x<n;x++)for(let y=0;y<n;y++){const w=E[x+','+y],x0=x*cell,y0=y*cell,x1=x0+cell,y1=y0+cell;
+  if(w.has('S'))segs.push([x0,y0,x1,y0]);if(w.has('W'))segs.push([x0,y0,x0,y1]);if(w.has('N')&&y===n-1)segs.push([x0,y1,x1,y1]);if(w.has('E')&&x===n-1)segs.push([x1,y0,x1,y1])}
+ return segs}
+// ---- LiDAR: one ray every 2 degrees, distance from the body centre
+function scan(ox,oy,th,segs){const out=new Array(PHIS.length);
+ for(let k=0;k<PHIS.length;k++){const a=th+PHIS[k],dx=Math.cos(a),dy=Math.sin(a);let best=12;
+  for(const s of segs){const ex=s[2]-s[0],ey=s[3]-s[1],den=dx*ey-dy*ex;if(Math.abs(den)<=1e-12)continue;
+   const t=((s[0]-ox)*ey-(s[1]-oy)*ex)/den,u=((s[0]-ox)*dy-(s[1]-oy)*dx)/den;if(u>=0&&u<=1&&t>=0&&t<best)best=t}out[k]=best}return out}
+function corners(x,y,th){const c=Math.cos(th),s=Math.sin(th);return[[LENGTH/2,WIDTH/2],[LENGTH/2,-WIDTH/2],[-LENGTH/2,-WIDTH/2],[-LENGTH/2,WIDTH/2]].map(([bx,by])=>[x+bx*c-by*s,y+bx*s+by*c])}
+const orient=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+function crosses(p1,p2,p3,p4){const d1=orient(p3,p4,p1),d2=orient(p3,p4,p2),d3=orient(p1,p2,p3),d4=orient(p1,p2,p4);return d1*d2<0&&d3*d4<0}
+function collides(x,y,th,segs){const P=corners(x,y,th);for(const s of segs)for(let i=0;i<4;i++)if(crosses(P[i],P[(i+1)%4],[s[0],s[1]],[s[2],s[3]]))return true;return false}
+// ---- the rover: network + supervisor + safety stop + bicycle model (same as the Python simulator)
+class Rover{constructor(net,x,y,th){Object.assign(this,{net,x,y,th,v:0,delta:0,mode:'NET',timer:0,slow:0,side:1,hist:[],points:[]})}
+ sense(segs){const r=scan(this.x,this.y,this.th,segs),clear=r.map((v,i)=>v-EXT[i]);
+  this.d16=SECT16.map(ix=>Math.min(RANGE,Math.max(0,Math.min(...ix.map(i=>clear[i])))));
+  const d={};for(const k in CORNER)d[k]=Math.max(0,Math.min(...CORNER[k].map(i=>clear[i])));
+  this.points=[];for(let i=0;i<r.length;i++)if(r[i]<2)this.points.push([r[i]*Math.cos(PHIS[i]),r[i]*Math.sin(PHIS[i])]);return d}
+ pathClear(speed,steer,horizon=0.4,margin=0.03){const P=this.points;if(!P.length)return true;
+  const v=Math.sign(speed)*Math.max(Math.abs(speed)*MAX_SPEED,0.15),delta=-steer*MAX_STEER;let x=0,y=0,th=0;
+  const inside=P.map(p=>Math.abs(p[0])<LENGTH/2+margin&&Math.abs(p[1])<WIDTH/2+margin);
+  for(let k=0;k<8;k++){x+=v*Math.cos(th)*horizon/8;y+=v*Math.sin(th)*horizon/8;th+=v/WB*Math.tan(delta)*horizon/8;const c=Math.cos(th),s=Math.sin(th);
+   for(let i=0;i<P.length;i++){const lx=(P[i][0]-x)*c+(P[i][1]-y)*s,ly=-(P[i][0]-x)*s+(P[i][1]-y)*c;
+    const inm=Math.abs(lx)<LENGTH/2+margin&&Math.abs(ly)<WIDTH/2+margin,touch=Math.abs(lx)<LENGTH/2+0.005&&Math.abs(ly)<WIDTH/2+0.005;
+    if((inm&&!inside[i])||touch)return false}}return true}
+ supervisor(d,speed,steer){const front=Math.min(d.FL,d.FR),rear=Math.min(d.RL,d.RR),N=Math.round(3/DT);
+  if(this.mode==='NET'){this.hist.push([this.x,this.y]);if(this.hist.length>N)this.hist.shift();const[hx,hy]=this.hist[0];
+   const h16=this.hist.length>=16?this.hist[this.hist.length-16]:this.hist[0];
+   const stuck=(this.hist.length===N&&Math.hypot(this.x-hx,this.y-hy)<0.10)||(Math.abs(this.v)<0.02&&this.hist.length>Math.floor(0.8/DT)&&Math.hypot(this.x-h16[0],this.y-h16[1])<0.01);
+   this.slow=stuck?this.slow+DT:0;
+   if(this.slow>=0.05){this.side=d.FR>=d.FL-0.05?1:-1;this.slow=0;this.hist=[];
+    if(rear>0.25&&(rear>=front||front<=0.25)){this.mode='REVERSE';this.timer=1.5}else if(front>0.25){this.mode='FORWARD';this.timer=1.2}}
+   return[speed,steer,'']}
+  this.timer-=DT;
+  if(this.mode==='REVERSE'){if(this.timer<=0||rear<0.2){this.mode='FORWARD';this.timer=1.2}return[-0.4,-this.side,'3pt-rev']}
+  if(this.timer<=0||front<0.2)this.mode='NET';return[0.35,this.side,'3pt-fwd']}
+ step(segs){const d=this.sense(segs);const q=this.d16.map(v=>Math.min(127,Math.max(0,Math.round(Math.min(v,RANGE)/RANGE*127))));
+  const y=this.net.forward(q);let speed=y[0]/127,steer=y[1]/127,guard;[speed,steer,guard]=this.supervisor(d,speed,steer);
+  if(speed!==0&&!this.pathClear(speed,steer)){if(this.pathClear(speed,0)){steer=0;guard='straighten'}else{guard=speed>0?'front':'rear';speed=0}}
+  const vc=speed*MAX_SPEED;this.v+=Math.max(-ACCEL*DT,Math.min(ACCEL*DT,vc-this.v));
+  const dc=-steer*MAX_STEER;this.delta+=Math.max(-STEER_RATE*DT,Math.min(STEER_RATE*DT,dc-this.delta));
+  this.x+=this.v*Math.cos(this.th)*DT;this.y+=this.v*Math.sin(this.th)*DT;this.th+=this.v/WB*Math.tan(this.delta)*DT;
+  return{q,y,guard}}}
+// ---- page
+const $=id=>document.getElementById(id),cv=$('arena'),g=cv.getContext('2d');
+const MODELS={};let net,seg=[],N=6,CELL=1.6,seed=1,rov,trail=[],cells=new Set(),t=0,dist=0,done=null,run=true,k=4,last=null,info=null;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+$('sect').innerHTML='<i></i>'.repeat(16);
+function reset(){rov=new Rover(net,CELL/2,CELL/2,0);trail=[];cells=new Set();t=0;dist=0;done=null;info=null;$('banner').hidden=true}
+function newMaze(){seed=Math.floor(Math.random()*1e9);seg=makeMaze(N,CELL,seed);reset()}
+function tick(){if(done)return;const px=rov.x,py=rov.y;info=rov.step(seg);t+=DT;dist+=Math.hypot(rov.x-px,rov.y-py);
+ if(trail.length===0||Math.hypot(rov.x-trail[trail.length-1][0],rov.y-trail[trail.length-1][1])>0.04)trail.push([rov.x,rov.y]);
+ const c=[Math.floor(rov.x/CELL),Math.floor(rov.y/CELL)];cells.add(c+'');
+ if(collides(rov.x,rov.y,rov.th,seg)){done='crash';banner('bad',`Crashed after ${t.toFixed(1)} s`)}
+ else if(c[0]===N-1&&c[1]===N-1){done='exit';banner('ok',`Reached the exit in ${t.toFixed(1)} s`)}
+ else if(t>=1200){done='time';banner('warn','No exit after 20 minutes')}}
+function banner(cls,txt){const b=$('banner');b.className='banner '+cls;b.textContent=txt;b.hidden=false}
+function draw(){const W=cv.width,S=(W-40)/(N*CELL),X=x=>20+x*S,Y=y=>W-20-y*S;
+ g.fillStyle=css('--floor');g.fillRect(0,0,W,W);g.fillStyle=css('--exit');g.fillRect(X((N-1)*CELL),Y(N*CELL),CELL*S,CELL*S);
+ g.strokeStyle=css('--trail');g.lineWidth=2.5;g.beginPath();trail.forEach((p,i)=>i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1])));g.stroke();
+ if(rov.d16){g.strokeStyle=css('--beam');g.globalAlpha=.55;g.lineWidth=1.5;rov.d16.forEach((d,i)=>{const a=rov.th+(-180+11.25+22.5*i)*Math.PI/180,r=d+0.25;g.beginPath();g.moveTo(X(rov.x),Y(rov.y));g.lineTo(X(rov.x+r*Math.cos(a)),Y(rov.y+r*Math.sin(a)));g.stroke()});g.globalAlpha=1}
+ g.strokeStyle=css('--wall');g.lineWidth=5;g.lineCap='round';g.beginPath();seg.forEach(s=>{g.moveTo(X(s[0]),Y(s[1]));g.lineTo(X(s[2]),Y(s[3]))});g.stroke();
+ g.save();g.translate(X(rov.x),Y(rov.y));g.rotate(-rov.th);g.fillStyle=css('--accent');g.fillRect(-LENGTH/2*S,-WIDTH/2*S,LENGTH*S,WIDTH*S);g.fillStyle=css('--panel');g.fillRect(LENGTH/2*S-8,-4,6,8);g.restore();
+ $('s-time').textContent=t.toFixed(1)+' s';$('s-dist').textContent=dist.toFixed(1)+' m';$('s-cells').textContent=Math.round(cells.size/(N*N)*100)+' %';
+ if(info){const sp=info.y[0],st=info.y[1];$('spv').textContent=(sp>=0?'+':'')+Math.round(sp/127*100)+' %';$('stv').textContent=(st>=0?'+':'')+Math.round(st/127*100)+' % '+(st>0?'R':st<0?'L':'');
+  $('spr').textContent='y0 = '+sp;$('str').textContent='y1 = '+st;
+  for(const[b,v]of[[$('spb'),sp],[$('stb'),st]]){const f=v/127*50;b.style.left=(f>=0?50:50+f)+'%';b.style.width=Math.abs(f)+'%'}
+  [...$('sect').children].forEach((el,i)=>el.style.height=Math.max(3,info.q[i]/127*100)+'%');
+  $('m-net').classList.toggle('on',!info.guard);$('m-sup').classList.toggle('on',info.guard.startsWith('3pt'));$('m-saf').classList.toggle('on',['front','rear','straighten'].includes(info.guard))}}
+function loop(now){if(last===null)last=now;let acc=Math.min(0.25,(now-last)/1000)*k;last=now;
+ if(run&&!done){while(acc>0&&!done){tick();acc-=DT}}draw();requestAnimationFrame(loop)}
+$('play').onclick=()=>{run=!run;$('play').textContent=run?'Pause':'Run'};
+$('restart').onclick=()=>{reset()};
+$('newmaze').onclick=newMaze;
+$('size').onchange=e=>{N=+e.target.value;newMaze()};$('cell').onchange=e=>{CELL=+e.target.value;newMaze()};
+$('model').onchange=e=>{selectModel(e.target.value);reset()};
+document.querySelectorAll('#speedseg button').forEach(b=>b.onclick=()=>{k=+b.dataset.k;document.querySelectorAll('#speedseg button').forEach(o=>o.setAttribute('aria-pressed',o===b))});
+function selectModel(name){const m=MODELS[name];net=new Net(m);$('chipid').textContent=`${name}_model.json · CRC-32 ${m.crc32}`;
+ let ok=0;for(const v of m.test_vectors){const y=net.forward(v.x);if(y.every((a,i)=>a===v.y[i]))ok++}
+ $('selftest').textContent=`Network self-test: ${ok}/${m.test_vectors.length} golden vectors bit-exact`;$('selftest').style.color=ok===m.test_vectors.length?'':'var(--bad)'}
+Promise.all(['maze','rover64'].map(n=>fetch(n+'_model.json').then(r=>r.json()))).then(([mz,rv])=>{MODELS.maze=mz;MODELS.rover=rv;selectModel('maze');
+ const q=new URLSearchParams(location.search);if(q.get('seed')){seed=+q.get('seed');N=+(q.get('n')||6);CELL=+(q.get('cell')||1.6);$('size').value=N;$('cell').value=CELL;seg=makeMaze(N,CELL,seed);reset()}else newMaze();
+ window.__sim={get rov(){return rov},tick,get done(){return done},get t(){return t},setSegs:(s,n,c)=>{seg=s;if(n){N=n;CELL=c}reset()},selectModel,pause:()=>{run=false}};
+ requestAnimationFrame(loop)});
+}
+</script></body></html>

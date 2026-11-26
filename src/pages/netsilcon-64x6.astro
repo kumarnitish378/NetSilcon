@@ -125,8 +125,26 @@ const faq = [
       <p class="more"><a href={repo(M64X6 + 'models/rover/README.md')} rel="noopener">How the rover model was trained →</a> &nbsp; <a href={u('/playground/#rover')}>Drive the 6x4 rover in your browser →</a></p>
     </section>
 
+    <section class="sec" aria-labelledby="mazes">
+      <SecHead no="§5 Second model" title="Same chip, new file: it finds the way out of mazes." id="mazes">A second trained model for the same network shape and the same 16 LiDAR inputs. It learned the right-hand rule: turn right if you can, else go straight, else turn left, and stop at a dead end so the 3-point-turn helper can turn around.</SecHead>
+      <div class="tbl-wrap">
+        <table class="stack">
+          <thead><tr><th>Test mazes (never seen in training)</th><th class="r">Maze model</th><th class="r">Rover model</th></tr></thead>
+          <tbody>
+            <tr><td data-l="Mazes">4 × 4 cells, 1.6 m corridors</td><td data-l="Maze model" class="num r">20 / 20</td><td data-l="Rover model" class="num r">12 / 20</td></tr>
+            <tr><td data-l="Mazes">6 × 6 cells, 1.6 m corridors</td><td data-l="Maze model" class="num r">19 / 20</td><td data-l="Rover model" class="num r">12 / 20</td></tr>
+            <tr><td data-l="Mazes">8 × 8 cells, 1.6 m corridors</td><td data-l="Maze model" class="num r">18 / 20</td><td data-l="Rover model" class="num r">6 / 20</td></tr>
+            <tr><td data-l="Mazes">6 × 6 cells, 1.2 m corridors</td><td data-l="Maze model" class="num r">15 / 20</td><td data-l="Rover model" class="num r">8 / 20</td></tr>
+            <tr class="us"><td data-l="Mazes"><b>All 80 mazes: reached the exit</b></td><td data-l="Maze model" class="num r"><b>72 / 80</b> · 0 crashes</td><td data-l="Rover model" class="num r">38 / 80 · 1 crash</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small">Simulation only <Tag b="M" />, bit-exact int8 maths; the Verilog simulation matches Python on all 1,200 golden vectors of the maze model (CRC-32 CA0156C9). Not yet run on the board. The model explores; it does not plan the shortest route.</p>
+      <p class="more"><a href={u('/playground/#maze')}>Watch it drive through a new maze in your browser →</a> &nbsp; <a href={u('/news/netsilcon-64x6-maze/')}>How it was trained →</a></p>
+    </section>
+
     <section class="sec" aria-labelledby="family">
-      <SecHead no="§5 Family" title="NetSilcon-6x4 and NetSilcon-64x6 side by side." id="family">Same idea, same board, same neuron maths: the shape is fixed in hardware, the numbers are loadable.</SecHead>
+      <SecHead no="§6 Family" title="NetSilcon-6x4 and NetSilcon-64x6 side by side." id="family">Same idea, same board, same neuron maths: the shape is fixed in hardware, the numbers are loadable.</SecHead>
       <div class="tbl-wrap">
         <table class="stack">
           <thead><tr><th></th><th><a href={u('/netsilcon-6x4/')}>NetSilcon-6x4</a></th><th>NetSilcon-64x6</th></tr></thead>
@@ -136,7 +154,7 @@ const faq = [
     </section>
 
     <section class="sec" aria-labelledby="try">
-      <SecHead no="§6 Try it" title="Run it on your own Tang Nano 20K." id="try">Program the NetSilcon-64x6 bitstream once. After that a new model is only a file upload.</SecHead>
+      <SecHead no="§7 Try it" title="Run it on your own Tang Nano 20K." id="try">Program the NetSilcon-64x6 bitstream once. After that a new model is only a file upload.</SecHead>
 <pre><code>git clone https://github.com/kumarnitish378/NetSilcon-FPGA.git
 cd NetSilcon-FPGA/NetSilcon-Models/NetSilcon-64x6
 bash fpga/scripts/run_sim_engine.sh                               # simulation: engine vs Python
@@ -147,7 +165,7 @@ python python/rover_sim/rover64.py --hil COM7 --unstick --runs 2      # the FPGA
     </section>
 
     <section class="sec" aria-labelledby="faq">
-      <SecHead no="§7 FAQ" title="Questions people ask." id="faq" />
+      <SecHead no="§8 FAQ" title="Questions people ask." id="faq" />
       <div class="faq">
         {faq.map((f) => <details><summary>{f.q}</summary><p>{f.a}</p></details>)}
       </div>
